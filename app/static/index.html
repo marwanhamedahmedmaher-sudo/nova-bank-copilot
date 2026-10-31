@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nova Agent Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f6f9; --panel:#fff; --ink:#0f1b2d; --muted:#5b6b80; --line:#e3e8ef;
+  --brand:#0b3a6e; --brand-2:#1565c0; --accent:#0f8b8d;
+  --ok:#137a43; --ok-bg:#e7f6ee; --bad:#b42318; --bad-bg:#fdecea; --warn:#9a6700; --warn-bg:#fff6dd;
+  --chip:#eef3fa;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 Inter,"IBM Plex Sans Arabic",system-ui,sans-serif}
+header{display:flex;align-items:center;gap:14px;padding:10px 18px;background:var(--brand);color:#fff}
+header .logo{font-weight:700;letter-spacing:.3px;font-size:16px}
+header .logo span{color:#7fd3d5}
+header .sp{flex:1}
+header .pill{background:rgba(255,255,255,.14);padding:4px 10px;border-radius:999px;font-size:12px}
+main{display:grid;grid-template-columns:280px minmax(0,1fr) 360px;gap:14px;padding:14px;height:calc(100vh - 48px)}
+.col{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:auto;min-height:0}
+.col h2{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:0;padding:12px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);z-index:1}
+.case{padding:11px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+.case:hover{background:#f8fafc}
+.case.active{background:#eaf2fd;border-left:3px solid var(--brand-2);padding-left:11px}
+.case .top{display:flex;justify-content:space-between;font-weight:600}
+.case .meta{color:var(--muted);font-size:12px;margin:2px 0 4px}
+.case .msg{font-size:12.5px;color:#33435a;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;background:var(--chip);color:var(--brand);margin-right:4px;font-weight:500}
+.center{display:flex;flex-direction:column}
+.convo{padding:16px 18px;border-bottom:1px solid var(--line)}
+.bubble{background:#f1f4f8;border-radius:14px 14px 14px 4px;padding:12px 14px;max-width:85%;font-size:15px}
+.who{font-size:12px;color:var(--muted);margin-bottom:6px}
+textarea{width:100%;min-height:62px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;resize:vertical;margin-top:12px}
+.row{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+button{font:inherit;border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 12px;cursor:pointer}
+button.primary{background:var(--brand-2);border-color:var(--brand-2);color:#fff;font-weight:600}
+button.primary:disabled{opacity:.6;cursor:wait}
+button:hover{filter:brightness(.97)}
+.hint{color:var(--muted);font-size:12px}
+.draft{padding:16px 18px;flex:1}
+.empty{color:var(--muted);text-align:center;margin-top:60px}
+.status{display:inline-flex;align-items:center;gap:6px;font-weight:600;padding:4px 10px;border-radius:999px;font-size:12.5px}
+.status.ready{background:var(--ok-bg);color:var(--ok)}
+.status.blocked{background:var(--bad-bg);color:var(--bad)}
+.card{border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:12px}
+.card h3{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+.reply{font-size:16px;line-height:1.6;background:#f7fbff;border:1px solid #d6e6fb;border-radius:10px;padding:12px 14px}
+.reply.rtl,.bubble.rtl{direction:rtl;text-align:right;font-family:"IBM Plex Sans Arabic",Inter,sans-serif}
+.en{color:var(--muted);margin-top:8px;font-size:13.5px}
+.fact{padding:8px 0;border-bottom:1px dashed var(--line)}
+.fact:last-child{border-bottom:0}
+.cite{display:inline-block;background:var(--chip);color:var(--brand);border-radius:6px;padding:1px 7px;margin:3px 4px 0 0;font-size:12px;cursor:pointer;font-weight:500}
+.cite:hover{background:#dce8f8}
+.action{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line)}
+.action:last-child{border-bottom:0}
+.action b{font-weight:600}
+.approver{font-size:11.5px;color:var(--warn);background:var(--warn-bg);padding:2px 8px;border-radius:999px;white-space:nowrap}
+.check{display:flex;gap:8px;padding:5px 0;font-size:13px}
+.check .i{width:18px;text-align:center;font-weight:700}
+.check.pass .i{color:var(--ok)} .check.fail .i{color:var(--bad)} .check.warn .i{color:var(--warn)}
+.check .d{color:var(--muted)}
+.flags .tag{background:var(--bad-bg);color:var(--bad)}
+.metrics{display:flex;gap:16px;color:var(--muted);font-size:12px;margin-top:14px;flex-wrap:wrap}
+.cust{padding:14px}
+.cust .name{font-size:17px;font-weight:700}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px;margin-top:10px}
+.kv div:nth-child(odd){color:var(--muted)}
+.verified{color:var(--ok);font-weight:600;font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+td{padding:6px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+td.amt{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+tr.hl td{background:#fff7d6}
+.st{font-size:11px;padding:1px 6px;border-radius:999px;background:var(--chip)}
+.st.disputed,.st.declined{background:var(--bad-bg);color:var(--bad)}
+.st.pending,.st.awaiting_merchant,.st.under_review,.st.submitted{background:var(--warn-bg);color:var(--warn)}
+.sub{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);padding:12px 14px 6px}
+.policy{margin:0 14px 14px;padding:12px;border:1px solid #d6e6fb;background:#f7fbff;border-radius:10px;font-size:13px;display:none}
+.policy b{display:block;margin-bottom:4px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;display:none;z-index:9}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.5);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (max-width:1100px){main{grid-template-columns:1fr;height:auto}.col{max-height:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Nova Bank <span>· Agent Console</span></div>
+  <div class="sp"></div>
+  <div class="pill">Agent: Sara (agent-07)</div>
+  <div class="pill">Copilot on · suggestions only</div>
+</header>
+<main>
+  <section class="col" id="queue"><h2>Open cases</h2></section>
+
+  <section class="col center">
+    <div class="convo" id="convo"><div class="empty">Pick a case from the queue.</div></div>
+    <div class="draft" id="draft"></div>
+  </section>
+
+  <section class="col" id="customer"><h2>Verified customer</h2></section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const LANG = {en:"English", ar:"Formal Arabic", arz:"Egyptian Arabic", franco:"Franco-Arabic"};
+const ACTION = {open_dispute:"Open dispute", block_card:"Block card", order_replacement_card:"Order replacement card",
+  request_fee_waiver:"Request fee waiver", log_complaint:"Log complaint", escalate_to_supervisor:"Escalate to supervisor"};
+const APPROVER = {agent:"Agent clicks", team_leader:"Team Leader approves", operations_manager:"Ops Manager approves",
+  disputes_team:"Disputes team decides", credit_team:"Credit team decides"};
+const FLAG = {prompt_injection:"Prompt injection", third_party_request:"Asks about someone else", approval_request:"Asks for approval",
+  complaint:"Complaint", fraud_suspected:"Fraud suspected", outside_policy:"Outside policy"};
+let current = null, detail = null;
+
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.style.display="block"; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display="none",3200); }
+const rtl = lang => lang==="ar"||lang==="arz";
+// keep dates and amounts left-to-right inside Arabic text (2026-10-15 would otherwise render reversed)
+const bidi = (text, lang) => rtl(lang) ? esc(text).replace(/(\d[\d\-.,:\/]*\d|\d)/g, '<bdi dir="ltr">$1</bdi>') : esc(text);
+
+async function loadQueue(){
+  const cases = await (await fetch("/api/cases")).json();
+  $("#queue").innerHTML = "<h2>Open cases</h2>" + cases.map(c => `
+    <div class="case" data-id="${c.case_id}">
+      <div class="top"><span>${esc(c.customer_name)}</span><span class="hint">${c.channel==="call"?"📞 Call":"💬 Chat"}</span></div>
+      <div class="meta">${c.case_id} · ${esc(c.plan)} · <span class="tag">${LANG[c.language]}</span></div>
+      <div class="msg" ${rtl(c.language)?'dir="rtl"':''}>${esc(c.message)}</div>
+    </div>`).join("");
+  document.querySelectorAll(".case").forEach(el => el.onclick = () => openCase(el.dataset.id));
+}
+
+async function openCase(id){
+  current = id;
+  document.querySelectorAll(".case").forEach(el => el.classList.toggle("active", el.dataset.id===id));
+  detail = await (await fetch(`/api/cases/${id}`)).json();
+  const c = detail.case;
+  $("#convo").innerHTML = `
+    <div class="who">Customer · ${c.channel==="call"?"live call transcript":"chat"} · ${LANG[c.language]}</div>
+    <div class="bubble ${rtl(c.language)?"rtl":""}">${esc(c.message)}</div>
+    <textarea id="msg" placeholder="Edit or type what the customer says…">${esc(c.message)}</textarea>
+    <div class="row"><button class="primary" id="ask">Ask copilot</button>
+      <span class="hint">The copilot only sees this customer's records and Nova policies. Try to break it.</span></div>`;
+  $("#ask").onclick = ask;
+  $("#draft").innerHTML = "";
+  renderCustomer([]);
+}
+
+function renderCustomer(cited){
+  const cu = detail.customer, citedSet = new Set(cited);
+  const disputes = detail.disputes.map(d => `<tr class="${citedSet.has(d.dispute_id)?"hl":""}"><td><b>${d.dispute_id}</b> · ${esc(d.merchant)}<br>
+      <span class="st ${d.stage}">${d.stage.replaceAll("_"," ")}</span> <span class="hint">expected by ${d.expected_resolution_by}</span></td>
+      <td class="amt">EGP ${Number(d.amount).toLocaleString()}</td></tr>`).join("") || `<tr><td class="hint">No disputes</td></tr>`;
+  const txns = detail.transactions.slice(0, 40).map(t => `<tr class="${citedSet.has(t.txn_id)?"hl":""}" id="row-${t.txn_id}">
+      <td>${t.date.slice(5)} · ${esc(t.merchant)} ${t.status!=="posted"?`<span class="st ${t.status}">${t.status}</span>`:""}<br><span class="hint">${t.txn_id}</span></td>
+      <td class="amt">${Number(t.amount).toLocaleString(undefined,{minimumFractionDigits:2})}</td></tr>`).join("");
+  $("#customer").innerHTML = `<h2>Verified customer</h2>
+    <div class="cust"><div class="name">${esc(cu.name)}</div><div class="verified">✓ Verified (ID&amp;V passed) · ${cu.customer_id}</div>
+      <div class="kv"><div>Plan</div><div>${esc(cu.plan)}</div><div>Tenure</div><div>${cu.tenure_months} months</div>
+        <div>City</div><div>${esc(cu.city)}</div><div>Card</div><div>•••• ${cu.card_last4} · ${cu.card_status.replaceAll("_"," ")}</div>
+        <div>Mobile</div><div>${cu.mobile}</div></div></div>
+    <div class="policy" id="policy"></div>
+    <div class="sub">Disputes</div><table>${disputes}</table>
+    <div class="sub">Transactions</div><table>${txns}</table>`;
+}
+
+async function ask(){
+  const btn = $("#ask"); btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> Drafting…`;
+  $("#draft").innerHTML = `<div class="empty">Reading policies and this customer's records…</div>`;
+  try{
+    const r = await fetch(`/api/cases/${current}/suggest`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({message:$("#msg").value})});
+    const data = await r.json();
+    if(!r.ok) throw new Error(data.detail || "copilot error");
+    renderDraft(data);
+  }catch(e){ $("#draft").innerHTML = `<div class="card"><span class="status blocked">Copilot unavailable</span><p>${esc(e.message)}</p><p class="hint">Answer the customer manually.</p></div>`; }
+  btn.disabled = false; btn.textContent = "Ask copilot";
+}
+
+function renderDraft(d){
+  const dr = d.draft, lang = dr.customer_language;
+  const cited = dr.facts.flatMap(f => f.citations.map(c => c.source_id.trim()));
+  const flags = [...new Set([...d.input_flags, ...dr.risk_flags])];
+  const ready = d.status === "ready";
+  $("#draft").innerHTML = `
+    <div class="row" style="margin-top:0">
+      <span class="status ${d.status}">${ready ? "✓ Ready to send" : "✕ Blocked by guardrails"}</span>
+      <span class="tag">${dr.intent.replaceAll("_"," ")}</span>
+      ${d.replayed ? `<span class="tag" style="background:var(--warn-bg);color:var(--warn)">Offline: replaying the last saved draft</span>` : ""}
+      ${flags.length ? `<span class="flags">${flags.map(f=>`<span class="tag">⚠ ${FLAG[f]||f}</span>`).join("")}</span>` : ""}
+    </div>
+    <div class="card"><h3>For you</h3>${esc(dr.agent_summary)}</div>
+    <div class="card"><h3>Suggested reply · ${LANG[lang]}</h3>
+      ${ready ? `<div class="reply ${rtl(lang)?"rtl":""}">${bidi(d.reply, lang)}</div><div class="en">EN: ${esc(d.reply_in_english)}</div>
+      <div class="row"><button class="primary" id="send">Send reply</button><button id="copy">Copy</button><button id="flag">Flag as wrong</button></div>`
+      : `<p>This draft failed a check below, so it is hidden. Answer from the policy yourself or escalate.</p><button id="flag">Flag</button>`}
+    </div>
+    <div class="card"><h3>Claims and sources</h3>${dr.facts.map(f => `<div class="fact">${esc(f.statement)}<br>
+        ${f.citations.map(c => `<span class="cite" data-src="${esc(c.source_id.trim())}" title="${esc(c.quote)}">${esc(c.source_id)}</span>`).join("")}</div>`).join("") || `<span class="hint">No claims.</span>`}</div>
+    <div class="card"><h3>Suggested actions · nothing happens until a human approves</h3>${dr.suggested_actions.map((a,i) => `
+      <div class="action"><div><b>${ACTION[a.action]}</b><br><span class="hint">${esc(a.reason)}</span></div>
+        <div class="row" style="margin:0"><span class="approver">${APPROVER[a.approver]}</span><button data-act="${a.action}" data-reason="${esc(a.reason)}">${a.approver==="agent"?"Do it":"Send for approval"}</button></div></div>`).join("") || `<span class="hint">No actions suggested.</span>`}</div>
+    <div class="card"><h3>Guardrail checks</h3>${d.checks.map(c => {
+        const cls = c.passed ? "pass" : (c.severity==="warn" ? "warn" : "fail");
+        return `<div class="check ${cls}"><span class="i">${c.passed?"✓":(c.severity==="warn"?"!":"✕")}</span><div>${esc(c.name)}<div class="d">${esc(c.detail)}</div></div></div>`;}).join("")}
+      ${d.retried ? `<div class="hint" style="margin-top:6px">First draft failed a check; the copilot corrected it once.</div>` : ""}</div>
+    <div class="metrics"><span>⏱ ${d.latency_s}s</span><span>💵 $${d.cost_usd.toFixed(4)}</span>
+      <span>Tokens in ${d.tokens.input.toLocaleString()} · cached ${d.tokens.cache_read.toLocaleString()} · out ${d.tokens.output.toLocaleString()}</span><span>${d.model}</span></div>`;
+  renderCustomer(cited);
+  document.querySelectorAll(".cite").forEach(el => el.onclick = () => showSource(el.dataset.src, el.title));
+  document.querySelectorAll("[data-act]").forEach(el => el.onclick = () => act(el.dataset.act, el.dataset.reason));
+  $("#send") && ($("#send").onclick = () => toast("Reply sent to customer and logged to the audit trail."));
+  $("#copy") && ($("#copy").onclick = () => { navigator.clipboard.writeText(d.reply); toast("Copied."); });
+  $("#flag").onclick = async () => { const note = prompt("What is wrong with this suggestion?"); if(!note) return;
+    await fetch(`/api/cases/${current}/flag`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({note})}); toast("Flagged for weekly review (POL-20 §6)."); };
+}
+
+async function showSource(src, quote){
+  const box = $("#policy");
+  if(src.startsWith("POL-")){
+    const [pid, sec] = src.split("§").map(s => s.trim());
+    const p = await (await fetch(`/api/policies/${pid}`)).json();
+    const s = p.sections[sec];
+    box.innerHTML = `<b>${pid} §${sec} · ${esc(p.title)}</b><div class="hint">${esc(p.header)}</div><p>${esc(s ? s.title + ". " + s.text : "Section not found")}</p><div class="hint">Quoted: “${esc(quote)}”</div>`;
+    box.style.display = "block"; box.scrollIntoView({behavior:"smooth", block:"nearest"});
+  } else {
+    box.style.display = "none";
+    const row = document.getElementById("row-" + src);
+    if(row){ row.scrollIntoView({behavior:"smooth", block:"center"}); }
+    toast(`${src}: “${quote}”`);
+  }
+}
+
+async function act(action, reason){
+  const r = await (await fetch(`/api/cases/${current}/action`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({action, reason})})).json();
+  toast(`${ACTION[action]}: ${r.note}`);
+}
+
+loadQueue();
+</script>
+</body>
+</html>

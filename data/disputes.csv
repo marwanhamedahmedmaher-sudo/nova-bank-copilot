@@ -1,0 +1,26 @@
+dispute_id,customer_id,txn_id,merchant,amount,reason,opened,stage,last_update,provisional_credit,expected_resolution_by,notes
+D-1001,C001,T00017,Unknown POS #4471,1200.0,Not recognised,2026-09-22,awaiting_merchant,2026-10-08,1200.0,2026-11-06,Provisional credit applied 2026-10-02. Claim sent to merchant's bank 2026-10-08.
+D-1002,C006,T00101,Jumia,2450.0,Goods not received,2026-08-20,declined,2026-10-15,2450.0,2026-10-04,Declined: merchant provided signed proof of delivery dated 2026-08-12. Customer notified 2026-10-15; provisional credit reversal scheduled 2026-10-22.
+D-1003,C009,T00168,Talabat,385.0,Duplicate charge,2026-10-20,under_review,2026-10-21,0,2026-12-04,Duplicate of same-day Talabat charge. Card blocked by customer in app on 2026-10-19 (unrelated).
+D-1004,C020,T00296,Steam Games,714.18,Wrong amount,2026-08-09,resolved_in_favour,2026-08-13,0,2026-09-23,
+D-1005,C035,T00536,Shell Fuel Station,424.47,Goods not received,2026-08-09,submitted,2026-08-23,0,2026-09-23,
+D-1006,C046,T00661,Booking.com,8116.47,Wrong amount,2026-08-18,submitted,2026-08-21,0,2026-10-02,
+D-1007,C018,T00266,WE Internet,453.27,Duplicate charge,2026-10-28,under_review,2026-10-29,0,2026-12-12,
+D-1008,C032,T00494,Talabat,474.29,Goods not received,2026-07-19,submitted,2026-08-03,0,2026-09-02,
+D-1009,C049,T00702,Seoudi Market,491.52,Duplicate charge,2026-09-09,under_review,2026-09-12,0,2026-10-24,
+D-1010,C049,T00706,Shell Fuel Station,1184.1,Duplicate charge,2026-09-12,declined,2026-09-14,0,2026-10-27,
+D-1011,C045,T00648,WE Internet,613.33,Wrong amount,2026-08-08,awaiting_merchant,2026-08-10,613.33,2026-09-22,
+D-1012,C022,T00334,Steam Games,1337.78,Wrong amount,2026-08-03,provisional_credit,2026-08-18,1337.78,2026-09-17,
+D-1013,C044,T00638,Amazon.eg,4450.21,Goods not received,2026-10-28,submitted,2026-10-29,0,2026-12-12,
+D-1014,C017,T00253,Seoudi Market,883.76,Goods not received,2026-10-13,submitted,2026-10-22,0,2026-11-27,
+D-1015,C047,T00680,Carrefour Mall of Egypt,1676.73,Wrong amount,2026-07-24,under_review,2026-08-05,0,2026-09-07,
+D-1016,C024,T00363,B.TECH,2525.32,Not recognised,2026-09-20,declined,2026-09-21,0,2026-11-04,
+D-1017,C023,T00351,Booking.com,4795.7,Not recognised,2026-07-25,submitted,2026-07-27,0,2026-09-08,
+D-1018,C015,T00226,Apple.com/bill,479.91,Wrong amount,2026-10-29,under_review,2026-10-29,0,2026-12-13,
+D-1019,C026,T00394,Steam Games,708.22,Goods not received,2026-08-04,under_review,2026-08-15,0,2026-09-18,
+D-1020,C010,T00171,Shell Fuel Station,404.05,Not recognised,2026-09-18,resolved_in_favour,2026-09-27,0,2026-11-02,
+D-1021,C032,T00500,Talabat,486.32,Not recognised,2026-10-28,awaiting_merchant,2026-10-29,486.32,2026-12-12,
+D-1022,C022,T00325,Netflix,230.44,Not recognised,2026-08-15,under_review,2026-08-20,0,2026-09-29,
+D-1023,C018,T00267,Shell Fuel Station,379.06,Duplicate charge,2026-10-09,submitted,2026-10-14,0,2026-11-23,
+D-1024,C025,T00383,Booking.com,4120.64,Goods not received,2026-08-03,submitted,2026-08-12,0,2026-09-17,
+D-1025,C041,T00606,Apple.com/bill,392.65,Duplicate charge,2026-09-29,awaiting_merchant,2026-10-04,392.65,2026-11-13,

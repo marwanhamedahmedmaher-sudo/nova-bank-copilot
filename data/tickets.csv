@@ -1,0 +1,201 @@
+ticket_id,customer_id,opened,channel,category,resolution_minutes,first_contact_resolution,agent_notes
+TK-5001,C021,2026-09-27,phone,dispute_status,15.3,True,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5002,C048,2026-09-30,phone,card_replacement,9.8,True,Card chip not working. Ordered free replacement (defective).
+TK-5003,C027,2026-08-19,chat,balance_statement,7.0,True,Asked for balance and last 5 transactions.
+TK-5004,C001,2026-07-31,chat,transfer_issue,8.3,True,"Wrong IBAN entered, raised recall request."
+TK-5005,C040,2026-10-02,phone,loan_inquiry,7.9,True,"Asked about personal loan rates. Directed to app application, cannot quote personal rate."
+TK-5006,C003,2026-10-25,phone,app_login,8.6,True,"New phone, re-registered device."
+TK-5007,C042,2026-08-26,chat,transfer_issue,5.7,False,"Wrong IBAN entered, raised recall request."
+TK-5008,C022,2026-09-14,chat,balance_statement,4.5,True,Asked for balance and last 5 transactions.
+TK-5009,C048,2026-10-20,chat,transfer_issue,4.4,True,"Wrong IBAN entered, raised recall request."
+TK-5010,C043,2026-09-25,phone,app_login,10.3,False,Locked out of app after 3 attempts. Reset via OTP.
+TK-5011,C049,2026-08-03,phone,app_login,6.6,True,"New phone, re-registered device."
+TK-5012,C015,2026-07-19,phone,app_login,12.7,True,"New phone, re-registered device."
+TK-5013,C014,2026-09-06,phone,balance_statement,5.9,False,Requested printed statement.
+TK-5014,C041,2026-10-14,phone,dispute_status,14.3,False,Cust upset dispute taking long. Explained merchant has 30 days. Callback 01251892197.
+TK-5015,C008,2026-08-22,phone,card_replacement,10.3,True,"Asked where new card is. Checked courier status, with courier. Mobile 01215059862."
+TK-5016,C034,2026-08-08,chat,balance_statement,6.3,True,Requested printed statement.
+TK-5017,C019,2026-08-27,chat,card_replacement,7.9,True,"Lost card. Blocked, ordered replacement, EGP 150 fee explained."
+TK-5018,C034,2026-07-20,phone,other,2.9,True,Complaint about app speed. Logged feedback.
+TK-5019,C034,2026-09-23,phone,balance_statement,5.1,True,Requested printed statement.
+TK-5020,C036,2026-07-26,phone,dispute_status,14.8,True,"Cust asked for update on dispute. Read stage from disputes system, gave expected date."
+TK-5021,C012,2026-08-09,phone,app_login,6.5,True,"New phone, re-registered device."
+TK-5022,C006,2026-09-06,chat,card_replacement,6.6,True,"Lost card. Blocked, ordered replacement, EGP 150 fee explained."
+TK-5023,C028,2026-10-10,phone,dispute_status,9.2,True,Cust upset dispute taking long. Explained merchant has 30 days. Callback 01146451410.
+TK-5024,C003,2026-09-30,phone,fee_explanation,13.1,True,"Overdraft fees x3 on one day. Explained per-item fee and daily cap. Requested goodwill waiver, TL approved."
+TK-5025,C039,2026-10-12,chat,transfer_issue,8.9,False,Transfer to other bank pending. Explained processing time.
+TK-5026,C038,2026-08-17,phone,loan_inquiry,13.0,True,Asked if eligible for loan. Explained only Credit team decides.
+TK-5027,C006,2026-10-05,chat,dispute_status,7.2,True,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5028,C002,2026-07-14,chat,other,7.0,True,Complaint about app speed. Logged feedback.
+TK-5029,C028,2026-08-23,phone,loan_inquiry,12.5,True,Asked if eligible for loan. Explained only Credit team decides.
+TK-5030,C033,2026-10-05,phone,dispute_status,10.9,True,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5031,C026,2026-09-08,chat,fee_explanation,12.4,True,"Overdraft fees x3 on one day. Explained per-item fee and daily cap. Requested goodwill waiver, TL approved."
+TK-5032,C030,2026-07-16,phone,other,7.1,True,Asked about branch hours.
+TK-5033,C001,2026-07-14,phone,app_login,2,True,Locked out of app after 3 attempts. Reset via OTP.
+TK-5034,C013,2026-09-30,phone,transfer_issue,9.1,True,Transfer to other bank pending. Explained processing time.
+TK-5035,C045,2026-10-04,chat,app_login,3.5,True,Locked out of app after 3 attempts. Reset via OTP.
+TK-5036,C022,2026-07-25,chat,fee_explanation,10.0,True,Asked why maintenance fee went up. Explained July fee change.
+TK-5037,C018,2026-09-05,phone,balance_statement,4.9,True,Requested printed statement.
+TK-5038,C026,2026-09-04,chat,app_login,9.6,True,"New phone, re-registered device."
+TK-5039,C016,2026-10-19,chat,fee_explanation,5.7,True,Asked why maintenance fee went up. Explained July fee change.
+TK-5040,C004,2026-07-27,chat,dispute_status,13.9,True,Cust upset dispute taking long. Explained merchant has 30 days. Callback 01500260735.
+TK-5041,C032,2026-09-29,phone,transfer_issue,5.7,True,Transfer to other bank pending. Explained processing time.
+TK-5042,C021,2026-07-02,chat,loan_inquiry,8.1,False,Asked if eligible for loan. Explained only Credit team decides.
+TK-5043,C018,2026-07-29,phone,dispute_status,11.9,True,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5044,C030,2026-08-21,chat,app_login,4.6,True,Locked out of app after 3 attempts. Reset via OTP.
+TK-5045,C012,2026-08-25,phone,dispute_status,12.3,True,"Cust asked for update on dispute. Read stage from disputes system, gave expected date."
+TK-5046,C032,2026-07-24,phone,app_login,5.8,True,Locked out of app after 3 attempts. Reset via OTP.
+TK-5047,C015,2026-09-25,phone,balance_statement,4.4,True,Asked for balance and last 5 transactions.
+TK-5048,C050,2026-10-26,phone,dispute_status,4.5,True,Cust upset dispute taking long. Explained merchant has 30 days. Callback 01578503019.
+TK-5049,C013,2026-10-09,phone,dispute_status,12.1,True,Cust upset dispute taking long. Explained merchant has 30 days. Callback 01594430334.
+TK-5050,C029,2026-09-26,chat,loan_inquiry,10.7,False,"Asked about personal loan rates. Directed to app application, cannot quote personal rate."
+TK-5051,C009,2026-07-06,phone,loan_inquiry,12.3,True,Asked if eligible for loan. Explained only Credit team decides.
+TK-5052,C036,2026-10-01,phone,loan_inquiry,13.7,True,Asked if eligible for loan. Explained only Credit team decides.
+TK-5053,C036,2026-10-16,phone,fee_explanation,9.6,True,Asked why maintenance fee went up. Explained July fee change.
+TK-5054,C025,2026-07-20,phone,fee_explanation,15.1,True,FX fee on Netflix. Explained 3% foreign transaction fee.
+TK-5055,C006,2026-07-26,chat,loan_inquiry,3.7,True,Asked if eligible for loan. Explained only Credit team decides.
+TK-5056,C003,2026-10-15,phone,dispute_status,12.4,False,"Cust asked for update on dispute. Read stage from disputes system, gave expected date."
+TK-5057,C034,2026-09-06,phone,transfer_issue,13.2,True,"Wrong IBAN entered, raised recall request."
+TK-5058,C013,2026-09-01,phone,dispute_status,13.1,True,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5059,C035,2026-10-05,phone,app_login,8.4,True,Locked out of app after 3 attempts. Reset via OTP.
+TK-5060,C020,2026-07-05,chat,app_login,7.9,True,Locked out of app after 3 attempts. Reset via OTP.
+TK-5061,C013,2026-10-29,phone,fee_explanation,9.5,True,"Overdraft fees x3 on one day. Explained per-item fee and daily cap. Requested goodwill waiver, TL approved."
+TK-5062,C016,2026-08-12,phone,balance_statement,6.4,False,Requested printed statement.
+TK-5063,C047,2026-09-10,phone,dispute_status,4.6,True,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5064,C030,2026-07-05,phone,card_replacement,10.4,False,"Asked where new card is. Checked courier status, with courier. Mobile 01190798843."
+TK-5065,C027,2026-09-21,phone,dispute_status,9.6,False,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5066,C047,2026-07-21,phone,transfer_issue,5.1,False,Transfer to other bank pending. Explained processing time.
+TK-5067,C001,2026-10-16,phone,fee_explanation,4.5,False,Asked why maintenance fee went up. Explained July fee change.
+TK-5068,C016,2026-07-15,phone,dispute_status,5.0,True,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5069,C008,2026-08-11,chat,balance_statement,3.8,False,Requested printed statement.
+TK-5070,C013,2026-08-06,chat,fee_explanation,8.4,True,Asked why maintenance fee went up. Explained July fee change.
+TK-5071,C047,2026-10-20,phone,fee_explanation,5.8,False,Asked why maintenance fee went up. Explained July fee change.
+TK-5072,C045,2026-09-12,phone,balance_statement,4.7,True,Asked for balance and last 5 transactions.
+TK-5073,C049,2026-07-22,phone,dispute_status,12.8,True,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5074,C008,2026-08-07,chat,balance_statement,6.3,True,Asked for balance and last 5 transactions.
+TK-5075,C038,2026-07-28,chat,transfer_issue,9.5,True,Transfer to other bank pending. Explained processing time.
+TK-5076,C005,2026-09-15,phone,fee_explanation,12.0,True,Asked why maintenance fee went up. Explained July fee change.
+TK-5077,C040,2026-10-07,phone,fee_explanation,6.0,False,"Overdraft fees x3 on one day. Explained per-item fee and daily cap. Requested goodwill waiver, TL approved."
+TK-5078,C012,2026-07-02,phone,app_login,2,True,"New phone, re-registered device."
+TK-5079,C003,2026-07-12,chat,card_replacement,9.4,True,"Lost card. Blocked, ordered replacement, EGP 150 fee explained."
+TK-5080,C050,2026-07-18,phone,fee_explanation,6.4,False,Asked why maintenance fee went up. Explained July fee change.
+TK-5081,C022,2026-09-29,chat,transfer_issue,22.6,False,"Wrong IBAN entered, raised recall request."
+TK-5082,C049,2026-09-16,phone,dispute_status,8.9,False,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5083,C024,2026-10-09,phone,dispute_status,6.1,True,Cust upset dispute taking long. Explained merchant has 30 days. Callback 01132603496.
+TK-5084,C050,2026-10-04,chat,transfer_issue,12.1,False,"Wrong IBAN entered, raised recall request."
+TK-5085,C048,2026-08-29,chat,dispute_status,14.6,False,Cust upset dispute taking long. Explained merchant has 30 days. Callback 01561148454.
+TK-5086,C033,2026-08-08,chat,transfer_issue,2.7,True,Transfer to other bank pending. Explained processing time.
+TK-5087,C017,2026-10-05,phone,dispute_status,12.5,True,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5088,C032,2026-09-12,phone,fee_explanation,6.1,True,"Overdraft fees x3 on one day. Explained per-item fee and daily cap. Requested goodwill waiver, TL approved."
+TK-5089,C044,2026-10-08,chat,transfer_issue,16.0,True,Transfer to other bank pending. Explained processing time.
+TK-5090,C044,2026-10-16,phone,transfer_issue,6.3,True,"Wrong IBAN entered, raised recall request."
+TK-5091,C001,2026-08-08,phone,fee_explanation,7.5,True,"Overdraft fees x3 on one day. Explained per-item fee and daily cap. Requested goodwill waiver, TL approved."
+TK-5092,C027,2026-09-16,phone,card_replacement,9.0,True,Card chip not working. Ordered free replacement (defective).
+TK-5093,C014,2026-07-11,chat,balance_statement,2.7,False,Requested printed statement.
+TK-5094,C018,2026-07-24,chat,dispute_status,17.1,True,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5095,C008,2026-07-28,phone,fee_explanation,7.6,True,"Overdraft fees x3 on one day. Explained per-item fee and daily cap. Requested goodwill waiver, TL approved."
+TK-5096,C024,2026-07-22,phone,dispute_status,9.9,True,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5097,C020,2026-09-02,chat,card_replacement,6.4,False,"Lost card. Blocked, ordered replacement, EGP 150 fee explained."
+TK-5098,C034,2026-07-02,phone,card_replacement,14.6,True,"Lost card. Blocked, ordered replacement, EGP 150 fee explained."
+TK-5099,C030,2026-09-11,phone,fee_explanation,8.8,True,FX fee on Netflix. Explained 3% foreign transaction fee.
+TK-5100,C049,2026-09-04,chat,other,3.9,False,Complaint about app speed. Logged feedback.
+TK-5101,C027,2026-07-10,phone,transfer_issue,5.4,True,"Wrong IBAN entered, raised recall request."
+TK-5102,C043,2026-09-29,chat,fee_explanation,7.8,True,FX fee on Netflix. Explained 3% foreign transaction fee.
+TK-5103,C042,2026-09-02,phone,dispute_status,4.9,False,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5104,C036,2026-08-18,chat,dispute_status,11.3,False,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5105,C047,2026-09-16,phone,dispute_status,11.0,True,"Cust asked for update on dispute. Read stage from disputes system, gave expected date."
+TK-5106,C010,2026-07-25,chat,fee_explanation,7.2,True,FX fee on Netflix. Explained 3% foreign transaction fee.
+TK-5107,C026,2026-07-23,phone,dispute_status,10.9,True,"Cust asked for update on dispute. Read stage from disputes system, gave expected date."
+TK-5108,C050,2026-09-08,phone,fee_explanation,3.7,True,"Overdraft fees x3 on one day. Explained per-item fee and daily cap. Requested goodwill waiver, TL approved."
+TK-5109,C006,2026-10-12,chat,transfer_issue,14.4,True,"Wrong IBAN entered, raised recall request."
+TK-5110,C018,2026-08-11,phone,loan_inquiry,8.2,True,Asked if eligible for loan. Explained only Credit team decides.
+TK-5111,C035,2026-08-14,phone,dispute_status,13.1,False,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5112,C011,2026-09-26,phone,balance_statement,4.2,True,Requested printed statement.
+TK-5113,C050,2026-08-16,phone,card_replacement,10.9,True,Card chip not working. Ordered free replacement (defective).
+TK-5114,C040,2026-08-11,chat,fee_explanation,7.5,True,FX fee on Netflix. Explained 3% foreign transaction fee.
+TK-5115,C024,2026-08-20,chat,fee_explanation,5.7,True,Asked why maintenance fee went up. Explained July fee change.
+TK-5116,C029,2026-09-03,chat,app_login,11.8,True,"New phone, re-registered device."
+TK-5117,C010,2026-08-05,chat,dispute_status,11.2,True,Cust upset dispute taking long. Explained merchant has 30 days. Callback 01547019054.
+TK-5118,C005,2026-08-05,chat,other,2.6,True,Complaint about app speed. Logged feedback.
+TK-5119,C019,2026-10-17,phone,balance_statement,3.9,False,Requested printed statement.
+TK-5120,C039,2026-10-29,phone,fee_explanation,6.3,True,Asked why maintenance fee went up. Explained July fee change.
+TK-5121,C036,2026-07-13,chat,dispute_status,11.1,True,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5122,C020,2026-07-22,phone,dispute_status,5.0,True,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5123,C045,2026-07-16,phone,other,6.5,True,Complaint about app speed. Logged feedback.
+TK-5124,C023,2026-10-19,phone,fee_explanation,5.0,True,Asked why maintenance fee went up. Explained July fee change.
+TK-5125,C048,2026-09-05,phone,balance_statement,2,False,Requested printed statement.
+TK-5126,C005,2026-10-27,chat,transfer_issue,13.7,False,Transfer to other bank pending. Explained processing time.
+TK-5127,C043,2026-07-31,chat,app_login,4.3,True,Locked out of app after 3 attempts. Reset via OTP.
+TK-5128,C015,2026-09-24,phone,dispute_status,9.1,True,Cust upset dispute taking long. Explained merchant has 30 days. Callback 01075149184.
+TK-5129,C048,2026-10-14,phone,dispute_status,14.5,False,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5130,C025,2026-09-17,phone,loan_inquiry,8.3,True,Asked if eligible for loan. Explained only Credit team decides.
+TK-5131,C014,2026-10-24,chat,app_login,7.2,True,Locked out of app after 3 attempts. Reset via OTP.
+TK-5132,C002,2026-09-28,chat,fee_explanation,9.3,False,"Overdraft fees x3 on one day. Explained per-item fee and daily cap. Requested goodwill waiver, TL approved."
+TK-5133,C001,2026-08-28,phone,fee_explanation,6.9,True,"Overdraft fees x3 on one day. Explained per-item fee and daily cap. Requested goodwill waiver, TL approved."
+TK-5134,C036,2026-09-15,phone,app_login,5.8,False,"New phone, re-registered device."
+TK-5135,C031,2026-07-29,phone,dispute_status,8.4,True,"Cust asked for update on dispute. Read stage from disputes system, gave expected date."
+TK-5136,C036,2026-10-10,phone,fee_explanation,14.8,True,FX fee on Netflix. Explained 3% foreign transaction fee.
+TK-5137,C046,2026-07-04,chat,balance_statement,5.2,True,Requested printed statement.
+TK-5138,C041,2026-08-05,phone,dispute_status,13.4,True,Cust upset dispute taking long. Explained merchant has 30 days. Callback 01251892197.
+TK-5139,C033,2026-09-14,phone,card_replacement,5.3,True,"Asked where new card is. Checked courier status, with courier. Mobile 01540338560."
+TK-5140,C043,2026-08-02,phone,fee_explanation,10.4,True,FX fee on Netflix. Explained 3% foreign transaction fee.
+TK-5141,C028,2026-08-28,chat,dispute_status,19.1,True,Cust upset dispute taking long. Explained merchant has 30 days. Callback 01146451410.
+TK-5142,C013,2026-07-15,chat,app_login,5.8,False,Locked out of app after 3 attempts. Reset via OTP.
+TK-5143,C048,2026-10-23,phone,dispute_status,6.7,True,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5144,C050,2026-08-03,phone,fee_explanation,7.7,True,FX fee on Netflix. Explained 3% foreign transaction fee.
+TK-5145,C048,2026-10-09,chat,fee_explanation,14.4,True,Asked why maintenance fee went up. Explained July fee change.
+TK-5146,C014,2026-08-23,phone,fee_explanation,5.8,True,FX fee on Netflix. Explained 3% foreign transaction fee.
+TK-5147,C048,2026-09-19,phone,loan_inquiry,5.0,True,Asked if eligible for loan. Explained only Credit team decides.
+TK-5148,C020,2026-07-14,phone,fee_explanation,7.1,True,FX fee on Netflix. Explained 3% foreign transaction fee.
+TK-5149,C027,2026-10-24,phone,fee_explanation,12.7,True,Asked why maintenance fee went up. Explained July fee change.
+TK-5150,C050,2026-10-22,chat,fee_explanation,8.9,True,Asked why maintenance fee went up. Explained July fee change.
+TK-5151,C021,2026-08-30,phone,fee_explanation,14.6,True,"Overdraft fees x3 on one day. Explained per-item fee and daily cap. Requested goodwill waiver, TL approved."
+TK-5152,C025,2026-07-27,phone,balance_statement,2,True,Asked for balance and last 5 transactions.
+TK-5153,C046,2026-08-05,chat,dispute_status,21.6,True,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5154,C011,2026-10-12,chat,card_replacement,6.2,False,"Lost card. Blocked, ordered replacement, EGP 150 fee explained."
+TK-5155,C014,2026-10-02,phone,dispute_status,7.6,True,"Cust asked for update on dispute. Read stage from disputes system, gave expected date."
+TK-5156,C050,2026-07-06,phone,card_replacement,7.5,True,"Asked where new card is. Checked courier status, with courier. Mobile 01578503019."
+TK-5157,C021,2026-08-13,chat,dispute_status,5.1,True,"Cust asked for update on dispute. Read stage from disputes system, gave expected date."
+TK-5158,C016,2026-07-27,phone,dispute_status,5.1,True,"Cust asked for update on dispute. Read stage from disputes system, gave expected date."
+TK-5159,C038,2026-10-21,chat,dispute_status,12.9,True,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5160,C046,2026-10-25,chat,transfer_issue,10.9,True,Transfer to other bank pending. Explained processing time.
+TK-5161,C011,2026-08-21,phone,balance_statement,2.7,True,Requested printed statement.
+TK-5162,C031,2026-09-16,phone,loan_inquiry,3.5,False,Asked if eligible for loan. Explained only Credit team decides.
+TK-5163,C025,2026-07-09,phone,app_login,5.3,False,Locked out of app after 3 attempts. Reset via OTP.
+TK-5164,C048,2026-10-03,phone,transfer_issue,2.2,True,Transfer to other bank pending. Explained processing time.
+TK-5165,C003,2026-08-29,phone,dispute_status,13.8,True,"Cust asked for update on dispute. Read stage from disputes system, gave expected date."
+TK-5166,C041,2026-09-12,chat,app_login,7.7,True,Locked out of app after 3 attempts. Reset via OTP.
+TK-5167,C002,2026-08-31,phone,card_replacement,9.1,False,"Asked where new card is. Checked courier status, with courier. Mobile 01051455561."
+TK-5168,C040,2026-09-04,phone,dispute_status,9.1,False,Cust upset dispute taking long. Explained merchant has 30 days. Callback 01290797642.
+TK-5169,C005,2026-10-17,phone,dispute_status,16.7,True,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5170,C039,2026-10-10,chat,app_login,7.8,False,Locked out of app after 3 attempts. Reset via OTP.
+TK-5171,C035,2026-09-17,phone,transfer_issue,8.0,True,Transfer to other bank pending. Explained processing time.
+TK-5172,C012,2026-10-15,chat,dispute_status,14.9,True,Cust upset dispute taking long. Explained merchant has 30 days. Callback 01164549689.
+TK-5173,C008,2026-09-29,chat,fee_explanation,6.8,True,FX fee on Netflix. Explained 3% foreign transaction fee.
+TK-5174,C035,2026-09-05,phone,dispute_status,8.8,True,"Cust asked for update on dispute. Read stage from disputes system, gave expected date."
+TK-5175,C016,2026-10-17,phone,loan_inquiry,18.4,True,Asked if eligible for loan. Explained only Credit team decides.
+TK-5176,C049,2026-08-07,phone,fee_explanation,2.2,True,FX fee on Netflix. Explained 3% foreign transaction fee.
+TK-5177,C050,2026-07-25,phone,fee_explanation,9.2,True,FX fee on Netflix. Explained 3% foreign transaction fee.
+TK-5178,C034,2026-08-19,chat,fee_explanation,8.1,True,FX fee on Netflix. Explained 3% foreign transaction fee.
+TK-5179,C042,2026-07-27,phone,app_login,11.2,True,Locked out of app after 3 attempts. Reset via OTP.
+TK-5180,C047,2026-07-04,phone,loan_inquiry,6.7,True,Asked if eligible for loan. Explained only Credit team decides.
+TK-5181,C012,2026-09-18,phone,dispute_status,15.0,False,Cust upset dispute taking long. Explained merchant has 30 days. Callback 01164549689.
+TK-5182,C002,2026-08-11,chat,fee_explanation,6.9,False,"Overdraft fees x3 on one day. Explained per-item fee and daily cap. Requested goodwill waiver, TL approved."
+TK-5183,C042,2026-09-22,phone,dispute_status,17.2,False,"Cust asked for update on dispute. Read stage from disputes system, gave expected date."
+TK-5184,C027,2026-09-07,phone,dispute_status,8.2,False,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5185,C022,2026-07-01,phone,fee_explanation,8.7,True,FX fee on Netflix. Explained 3% foreign transaction fee.
+TK-5186,C007,2026-07-05,phone,dispute_status,4.1,True,Cust upset dispute taking long. Explained merchant has 30 days. Callback 01260236964.
+TK-5187,C005,2026-09-07,phone,fee_explanation,10.4,True,FX fee on Netflix. Explained 3% foreign transaction fee.
+TK-5188,C035,2026-08-01,chat,transfer_issue,12.1,True,Transfer to other bank pending. Explained processing time.
+TK-5189,C014,2026-07-28,phone,transfer_issue,7.0,True,"Wrong IBAN entered, raised recall request."
+TK-5190,C008,2026-07-23,chat,loan_inquiry,18.5,True,"Asked about personal loan rates. Directed to app application, cannot quote personal rate."
+TK-5191,C048,2026-08-06,phone,loan_inquiry,10.1,True,"Asked about personal loan rates. Directed to app application, cannot quote personal rate."
+TK-5192,C014,2026-09-21,phone,loan_inquiry,7.0,True,"Asked about personal loan rates. Directed to app application, cannot quote personal rate."
+TK-5193,C005,2026-09-15,phone,transfer_issue,12.6,False,Transfer to other bank pending. Explained processing time.
+TK-5194,C001,2026-07-10,phone,balance_statement,5.8,False,Asked for balance and last 5 transactions.
+TK-5195,C032,2026-09-21,phone,loan_inquiry,16.0,True,Asked if eligible for loan. Explained only Credit team decides.
+TK-5196,C007,2026-08-02,phone,dispute_status,9.8,True,Wanted refund now. Explained only Disputes team decides. Logged complaint.
+TK-5197,C012,2026-08-26,chat,loan_inquiry,18.2,True,"Asked about personal loan rates. Directed to app application, cannot quote personal rate."
+TK-5198,C025,2026-10-15,phone,dispute_status,10.4,False,"Cust asked for update on dispute. Read stage from disputes system, gave expected date."
+TK-5199,C043,2026-08-12,phone,fee_explanation,7.9,False,Asked why maintenance fee went up. Explained July fee change.
+TK-5200,C043,2026-09-23,chat,dispute_status,11.6,False,Cust upset dispute taking long. Explained merchant has 30 days. Callback 01197741612.

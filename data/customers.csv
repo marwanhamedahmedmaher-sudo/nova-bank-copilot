@@ -1,0 +1,51 @@
+customer_id,name,plan,tenure_months,contact_channel,language,city,overdraft_opt_in,planned_overdraft_limit,salary_transfer,avg_balance_last_month,card_last4,card_status,card_expiry,mobile,national_id
+C001,Mariam Hassan,Plus,31,chat,franco,Cairo,False,0,True,62000,4821,active,2028-03,01293080592,29400481269539
+C002,Omar Ibrahim,Basic,14,phone,en,Giza,True,0,False,3100,7730,active,2027-11,01051455561,29350026435427
+C003,Nour Mahmoud,Premium,48,chat,ar,Cairo,False,60000,True,240000,1194,active,2029-01,01103434605,29714067583655
+C004,Youssef Saleh,Basic,26,chat,franco,Alexandria,False,0,False,6200,5502,active,2027-06,01500260735,30236041107123
+C005,Salma Fathy,Plus,19,phone,en,Cairo,False,0,True,41000,3368,active,2028-09,01504588824,30632016081215
+C006,Karim Mansour,Plus,37,phone,arz,Giza,True,0,True,18500,9047,active,2027-02,01296566087,30334419416155
+C007,Hana Ezzat,Business Growth,22,chat,en,Cairo,False,0,False,180000,6615,active,2028-05,01260236964,29894401328109
+C008,Ahmed Gamal,Basic,9,chat,franco,Mansoura,False,0,True,8800,2286,active,2028-12,01215059862,30932556677124
+C009,Tarek Shawky,Plus,40,chat,en,Cairo,False,0,True,73000,8173,blocked,2027-08,01114797416,30499932212698
+C010,Yasmin Sherif,Basic,84,app,en,Giza,False,0,False,300000,3924,active,2028-02,01547019054,29654915077171
+C011,Hassan Mansour,Basic,5,phone,ar,Cairo,False,0,False,70000,5249,active,2029-03,01093459495,29504107147535
+C012,Dina Hamdy,Basic,15,app,ar,Cairo,True,0,False,300000,1456,active,2029-06,01164549689,30982443364231
+C013,Karim Sherif,Basic,20,phone,ar,Giza,True,0,False,150000,8983,active,2027-03,01594430334,29352919280291
+C014,Karim Zaki,Basic,35,chat,ar,Alexandria,False,0,False,70000,2465,active,2026-12,01140968080,29435921521102
+C015,Khaled Shawky,Basic,69,web,arz,Giza,False,0,True,70000,1297,active,2026-01,01075149184,30589322187199
+C016,Karim Hassan,Basic,11,phone,franco,Cairo,True,0,False,150000,9289,active,2027-12,01201203393,29933034525020
+C017,Salma Ragab,Basic,7,chat,en,Cairo,False,0,True,9000,7381,active,2029-03,01276088678,29975806779600
+C018,Nour Abdelrahman,Basic,50,chat,en,Mansoura,True,0,True,15000,9016,active,2026-08,01075560720,30272648092061
+C019,Aya Saleh,Basic,44,phone,arz,Alexandria,False,0,True,2500,8959,active,2026-12,01162544181,29904894229251
+C020,Laila Gamal,Basic,48,web,arz,Cairo,False,0,True,300000,7456,active,2027-01,01564743133,30819792339534
+C021,Amr Ibrahim,Plus,37,app,en,Port Said,False,0,True,35000,8147,active,2028-04,01274074852,29074762091432
+C022,Amr Farouk,Plus,32,phone,franco,Alexandria,False,0,True,9000,2231,active,2029-09,01143745215,30225874453302
+C023,Nour Saleh,Plus,66,web,en,Cairo,False,20000,True,300000,8075,active,2026-03,01047894099,30921156976745
+C024,Mohamed Hassan,Plus,18,web,en,Mansoura,False,0,False,150000,2837,active,2026-05,01132603496,29422973046426
+C025,Nour Ezzat,Plus,65,app,arz,Tanta,False,20000,True,35000,9271,active,2027-08,01138227294,29849059005471
+C026,Farida Nabil,Plus,16,app,ar,Giza,True,40000,False,2500,6108,active,2028-06,01510239192,30738071543746
+C027,Tarek Farouk,Plus,7,chat,en,Giza,True,0,True,6000,6555,active,2028-06,01027320796,29024993244918
+C028,Khaled Saleh,Plus,79,web,arz,Port Said,False,0,False,6000,9386,active,2029-03,01146451410,29249911482577
+C029,Amr Ragab,Plus,36,phone,arz,Tanta,True,20000,True,15000,4858,active,2028-10,01133952869,29082438206810
+C030,Laila Fathy,Plus,59,phone,en,Cairo,False,40000,True,2500,7040,active,2027-01,01190798843,30004447615632
+C031,Hana Ibrahim,Plus,41,phone,franco,Giza,True,0,False,150000,7635,active,2026-07,01148484105,30063512591489
+C032,Hassan Shawky,Plus,18,app,franco,Giza,True,20000,True,9000,4638,replacement_ordered,2029-10,01181235312,29057081556345
+C033,Hana Farouk,Plus,49,chat,franco,Cairo,True,40000,False,300000,4854,active,2029-03,01540338560,29077505391897
+C034,Youssef Mansour,Plus,18,chat,arz,Assiut,False,0,False,15000,2073,active,2028-03,01282815922,29301196817156
+C035,Nour Rashad,Plus,73,app,arz,Alexandria,False,20000,False,70000,5337,active,2028-10,01137417082,30772264304600
+C036,Rana Sherif,Premium,40,app,arz,Alexandria,False,0,True,35000,3190,active,2028-10,01510874016,30420653649729
+C037,Mohamed Ibrahim,Premium,70,app,franco,Cairo,False,0,True,6000,1202,replacement_ordered,2027-03,01516568133,29974534906192
+C038,Mohamed Abdelrahman,Premium,44,phone,en,Cairo,False,40000,False,35000,5843,active,2026-09,01019821913,29389985450092
+C039,Khaled Mansour,Premium,52,app,ar,Cairo,False,0,True,6000,3651,active,2027-12,01001600087,29888089912108
+C040,Omar Shawky,Premium,63,app,ar,Cairo,False,0,True,70000,7942,active,2026-06,01290797642,29705040578524
+C041,Laila Mansour,Premium,38,app,en,Giza,False,20000,True,9000,9103,replacement_ordered,2028-09,01251892197,30767634380802
+C042,Amr Zaki,Premium,71,web,franco,Mansoura,False,0,False,9000,9708,replacement_ordered,2026-06,01258453462,29148213781123
+C043,Laila Sherif,Premium,22,web,arz,Cairo,False,0,False,6000,3696,active,2027-07,01197741612,30408429202702
+C044,Hana Ragab,Business Starter,77,chat,ar,Mansoura,False,0,False,15000,3973,active,2029-07,01227824718,30464691673490
+C045,Dina Mansour,Business Starter,22,web,arz,Cairo,False,0,False,300000,9864,active,2029-09,01068549263,29766230096651
+C046,Khaled Farouk,Business Starter,69,web,franco,Giza,False,0,False,15000,3695,active,2026-11,01145293688,30976747276964
+C047,Amr Sherif,Business Starter,33,phone,arz,Giza,False,0,False,300000,8020,replacement_ordered,2026-11,01213305395,30600962112731
+C048,Salma Soliman,Business Growth,23,app,arz,Cairo,False,0,False,300000,4491,active,2026-12,01561148454,29721571364244
+C049,Omar Fathy,Business Growth,83,phone,en,Cairo,False,0,False,2500,6414,active,2029-08,01107638345,29232023439832
+C050,Yasmin Abdelrahman,Business Growth,44,web,arz,Tanta,False,0,False,35000,3090,replacement_ordered,2026-01,01578503019,29796666562647
