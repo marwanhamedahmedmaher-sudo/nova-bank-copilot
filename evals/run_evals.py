@@ -5,6 +5,7 @@ Golden Record (question -> benchmark answer -> benchmark location) and 3H Eval (
     .venv\\Scripts\\python -m evals.run_evals G01 S05    # just these
 """
 import json
+import os
 import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -19,6 +20,9 @@ from app import copilot
 ROOT = Path(__file__).resolve().parent
 RESULTS = ROOT / "results"
 JUDGE_MODEL = copilot.MODEL
+# The control room runs this on whichever golden set is active (default: the base set)
+GOLDEN_SET = Path(os.getenv("GOLDEN_SET") or ROOT / "golden_set.jsonl")
+GOLDEN_SET_NAME = os.getenv("GOLDEN_SET_NAME", "Golden set v1")
 EVAL_TODAY = "2026-10-30"  # the golden set's benchmark answers were written for this date
 copilot.TODAY = EVAL_TODAY
 
@@ -76,7 +80,7 @@ FULL_ID = re.compile(r"\b[23]\d{13}\b")
 
 
 def load_cases(only=None):
-    cases = [json.loads(l) for l in (ROOT / "golden_set.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
+    cases = [json.loads(l) for l in GOLDEN_SET.read_text(encoding="utf-8").splitlines() if l.strip()]
     return [c for c in cases if not only or c["id"] in only]
 
 
@@ -169,6 +173,7 @@ def scores(runs):
     out["Overall 3H"] = round(sum(out.values()) / 3, 2)
     out["passed"] = sum(r["passed"] for r in ok)
     out["total"] = len(runs)
+    out["golden_set"] = GOLDEN_SET_NAME
     out["errors"] = len(runs) - len(ok)
     grounded = [r for r in ok if r["case"]["type"] == "grounded"]
     out["benchmark_accuracy"] = f"{sum(r['verdict']['matches_benchmark'] == 'Yes' for r in grounded)} of {len(grounded)}"
@@ -222,7 +227,7 @@ def write_xlsx(runs, summary, stamp):
     wb = Workbook(); ws = wb.active; ws.title = "3H Eval"
     ws.append(["3H Eval", "", "", "Helpfulness", summary["Helpfulness"]])
     ws.append(["Product", "Nova Bank support copilot (agent-assist)", f"Cases: {summary['total']}", "Honesty", summary["Honesty"]])
-    ws.append(["Test set", "Golden set v1 (41 cases, 4 languages)", f"Pass: {summary['passed']} of {summary['total']}", "Harmless", summary["Harmlessness"]])
+    ws.append(["Test set", f"{GOLDEN_SET_NAME} ({summary['total']} cases)", f"Pass: {summary['passed']} of {summary['total']}", "Harmless", summary["Harmlessness"]])
     ws.append(["Date Last Updated", stamp, f"Benchmark accuracy: {summary['benchmark_accuracy']}", "Overall 3H score", summary["Overall 3H"]])
     ws.append(["Model", copilot.MODEL, "Score = share of Yes answers per group; overall = average of the three groups"])
     for row in ws.iter_rows(min_row=1, max_row=5):

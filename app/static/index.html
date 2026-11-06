@@ -144,6 +144,74 @@ body:not(.dev) .devonly{display:none !important}
 .bubble.bot{background:#e0f4f4}
 .composer{display:flex;gap:8px;align-items:flex-end;margin-top:12px}
 .composer textarea{margin-top:0;min-height:44px}
+/* control room (dev mode) */
+#devnav{display:none}
+body.dev #devnav{display:flex;flex-direction:column;position:fixed;top:48px;left:0;bottom:0;width:212px;background:var(--panel);border-right:1px solid var(--line);z-index:3;overflow:auto}
+body.dev main,body.dev #screen{margin-left:212px}
+body.dev.screen-on main{display:none}
+#screen{display:none}
+body.dev.screen-on #screen{display:block;padding:16px 22px 40px;height:calc(100vh - 48px);overflow:auto}
+#devnav .grp{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);padding:14px 16px 4px}
+#devnav a{display:flex;justify-content:space-between;align-items:center;padding:8px 16px;color:var(--ink);text-decoration:none;font-size:13.5px;cursor:pointer;border-left:3px solid transparent}
+#devnav a:hover{background:#f8fafc}
+#devnav a.on{background:#eaf2fd;border-left-color:var(--brand-2);font-weight:600}
+#devnav a i{font-style:normal;font-size:11px;background:var(--chip);color:var(--brand);border-radius:999px;padding:0 7px;font-weight:500}
+#devnav .foot{margin-top:auto;padding:12px 16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+#devnav .foot input{width:100%;margin:4px 0 8px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:13px}
+#screen h1{font-size:19px;margin:0}
+#screen .lead{color:var(--muted);font-size:13px;margin:3px 0 14px;max-width:820px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+.panel h2{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:0 0 10px}
+.grid-t{width:100%;border-collapse:collapse;font-size:13px}
+.grid-t th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--line);font-weight:600}
+.grid-t td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.grid-t tr:last-child td{border-bottom:0}
+.grid-t .d{color:var(--muted);font-size:12px;margin-top:2px}
+.clip{max-width:340px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.sev{font-size:11px;padding:1px 8px;border-radius:999px;font-weight:600;white-space:nowrap}
+.sev.block{background:var(--bad-bg);color:var(--bad)} .sev.warn{background:var(--warn-bg);color:var(--warn)}
+.sev.off{background:#eef0f3;color:var(--muted)} .sev.pass{background:var(--ok-bg);color:var(--ok)} .sev.role{background:#eaf2fd;color:var(--brand-2)}
+.sw{position:relative;display:inline-block;width:34px;height:19px;flex:none}
+.sw input{opacity:0;width:0;height:0;position:absolute}
+.sw span{position:absolute;inset:0;background:#c5ced9;border-radius:999px;cursor:pointer;transition:.15s}
+.sw span:before{content:"";position:absolute;width:15px;height:15px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.15s}
+.sw input:checked+span{background:var(--ok)} .sw input:checked+span:before{transform:translateX(15px)}
+.sw input:disabled+span{cursor:not-allowed;opacity:.55}
+.sw input:focus-visible+span{box-shadow:0 0 0 3px #dbe8fb}
+select.s,input.s,textarea.s{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:13px;background:#fff}
+textarea.s{width:100%;min-height:70px;resize:vertical}
+.form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 12px}
+.form label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.form label.w2{grid-column:span 2} .form label.w4{grid-column:span 4}
+.form .s{width:100%;color:var(--ink)}
+.lnk{color:var(--brand-2);background:none;border:0;padding:0 6px 0 0;font-size:12.5px;cursor:pointer}
+.lnk.bad{color:var(--bad)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.kpi b{display:block;font-size:26px;line-height:1.15;font-variant-numeric:tabular-nums}
+.kpi span{font-size:12px;color:var(--muted)}
+.hbar{display:grid;grid-template-columns:150px 1fr 60px;gap:10px;align-items:center;font-size:13px;padding:4px 0}
+.hbar .t{background:#eef2f7;border-radius:4px;height:14px;overflow:hidden}
+.hbar .f{height:100%;background:var(--brand-2);border-radius:0 4px 4px 0;min-width:2px}
+.hbar .v{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+.cols{display:flex;align-items:flex-end;gap:10px;height:150px;padding:8px 4px 0;border-bottom:1px solid var(--line)}
+.cols .c{flex:1;max-width:60px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;cursor:default}
+.cols .c div{width:100%;background:var(--brand-2);border-radius:4px 4px 0 0;min-height:2px}
+.cols .c:hover div{background:var(--brand)}
+.cols .c small{font-size:11px;color:var(--ink);margin-bottom:3px;font-variant-numeric:tabular-nums}
+.xlab{display:flex;gap:10px;padding:4px}
+.xlab span{flex:1;max-width:60px;text-align:center;font-size:11px;color:var(--muted)}
+.banner{display:flex;gap:10px;align-items:center;padding:10px 14px;border-radius:10px;background:#eaf2fd;color:var(--brand);font-size:13px;margin-bottom:14px}
+.banner.warn{background:var(--warn-bg);color:var(--warn)}
+.chain{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px}
+.chain .node{border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:#fff}
+.chain .node.down{border-color:var(--bad);background:var(--bad-bg);text-decoration:line-through}
+.chain .node.live{border-color:var(--ok);background:var(--ok-bg)}
+.note-l{font-size:12px;color:var(--muted);margin-top:4px}
+.check.off .i{color:var(--muted)}
+button.bandrow{grid-template-columns:200px 1fr 60px;width:100%;background:none;border:0;border-radius:8px;padding:5px 8px;text-align:left;cursor:pointer;font:inherit}
+button.bandrow:hover{background:#f4f7fb} button.bandrow.on{background:#eaf2fd;box-shadow:inset 3px 0 0 var(--brand-2)}
 </style>
 </head>
 <body>
@@ -162,7 +230,7 @@ body:not(.dev) .devonly{display:none !important}
     </div>
     <div class="modehint" id="modehint"></div></div>
   <div class="group"><h4>Developer</h4>
-    <label class="devtoggle"><input type="checkbox" id="devtoggle"> Dev mode: cost, guardrails, risk rule, dev panel</label></div>
+    <label class="devtoggle"><input type="checkbox" id="devtoggle"> Dev mode: control room (guardrails, golden rules, evals, models, analytics)</label></div>
   <div class="group devonly" style="margin-bottom:0"><h4>Demo</h4>
     <button id="reset">Reset demo: reopen every case</button></div>
 </div>
@@ -276,7 +344,11 @@ $("#reset").onclick = async () => {
 document.querySelectorAll("#modes button").forEach(b => b.onclick = () => setMode(b.dataset.mode));
 $("#devtoggle").checked = store.get("nova.dev") === "1";
 document.body.classList.toggle("dev", $("#devtoggle").checked);
-$("#devtoggle").onchange = e => { store.set("nova.dev", e.target.checked ? "1" : "0"); document.body.classList.toggle("dev", e.target.checked); refreshDev(); };
+$("#devtoggle").onchange = e => {
+  store.set("nova.dev", e.target.checked ? "1" : "0"); document.body.classList.toggle("dev", e.target.checked);
+  if(e.target.checked){ $("#settings").hidden = true; go(screen); } else document.body.classList.remove("screen-on");
+  refreshDev();
+};
 fetch("/api/today").then(r => r.json()).then(d => $("#today-pill").textContent = "Today: " + d.today);
 
 async function refreshDev(){
@@ -562,8 +634,8 @@ function bindCites(){ document.querySelectorAll(".cite").forEach(el => el.onclic
 
 function checksHtml(d){
   const failed = d.checks.filter(c => !c.passed);
-  const row = c => { const cls = c.passed ? "pass" : (c.severity==="warn" ? "warn" : "fail");
-    return `<div class="check ${cls}"><span class="i">${c.passed?"✓":(c.severity==="warn"?"!":"✕")}</span><div>${esc(c.name)}<div class="d">${esc(c.detail)}</div></div></div>`; };
+  const row = c => { const cls = c.severity==="off" ? "off" : c.passed ? "pass" : (c.severity==="warn" ? "warn" : "fail");
+    return `<div class="check ${cls}"><span class="i">${c.severity==="off"?"○":c.passed?"✓":(c.severity==="warn"?"!":"✕")}</span><div>${esc(c.name)}<div class="d">${esc(c.detail)}</div></div></div>`; };
   const summary = `<div class="check ${failed.length ? "fail" : "pass"}"><span class="i">${failed.length ? "✕" : "✓"}</span><div>${d.checks.length - failed.length}/${d.checks.length} checks passed</div></div>`;
   // agents see one line unless something failed; dev mode shows the full list
   return `<div class="card"><h3>Guardrail checks</h3>${failed.length ? failed.map(row).join("") : summary}
@@ -604,7 +676,7 @@ function renderDraft(d, opts = {}){
           `<button data-act="${a.action}" data-reason="${esc(a.reason)}" data-amount="${a.amount_egp ?? ""}">${a.approver==="agent"?"Do it":"Send for approval"}</button>`}</div></div>`).join("") || `<span class="hint">No actions suggested.</span>`}</div>
     ${checksHtml(d)}
     <div class="metrics devonly"><span>⏱ ${d.latency_s ?? "-"}s</span><span>💵 $${(d.cost_usd ?? 0).toFixed(4)}</span>
-      ${d.tokens ? `<span>Tokens in ${d.tokens.input.toLocaleString()} · cached ${d.tokens.cache_read.toLocaleString()} · out ${d.tokens.output.toLocaleString()}</span>` : ""}<span>${esc(d.model || "")}</span></div>`;
+      ${d.tokens ? `<span>Tokens in ${d.tokens.input.toLocaleString()} · cached ${d.tokens.cache_read.toLocaleString()} · out ${d.tokens.output.toLocaleString()}</span>` : ""}<span>${esc(d.model || "")}${d.fell_back_from ? ` · backup model: ${esc(d.fell_back_from)} failed` : ""}</span></div>`;
   renderCustomer(citedIds(dr));
   bindCites();
   document.querySelectorAll("[data-act]").forEach(el => el.onclick = () => act(el.dataset.act, el.dataset.reason, el.dataset.amount));
@@ -793,7 +865,429 @@ async function act(action, reason, amount){
   toast(`${ACTION[action]}: ${r.note}`);
 }
 
+// ---- control room (dev mode): side menu screens -------------------------------------------------
+// Dev mode is still switched on in Settings. Once on, the side menu opens the live console or one of the screens below.
+const SCREENS = {console:"Live console", guardrails:"Guardrails", golden:"Golden rules", evals:"Evals", models:"Models", analytics:"Deflection & time saved"};
+let screen = store.get("nova.screen") || "console";
+const cr = {ctrl:null, golden:null, goldenSet:null, evals:null, editing:null, editGolden:null, poll:null, upload:null};
+const api = async (method, path, body) => {
+  const r = await fetch(path, {method, headers:{"Content-Type":"application/json"}, body: body === undefined ? undefined : JSON.stringify(body)});
+  const data = await r.json().catch(() => ({}));
+  if(!r.ok) throw new Error(data.detail || `request failed (${r.status})`);
+  return data;
+};
+const devUser = () => ($("#devuser")?.value || "").trim();
+const fmtAt = ts => ts ? new Date(ts).toLocaleString(undefined, {day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"}) : "";
+const sw = (attrs, on, disabled) => `<label class="sw"><input type="checkbox" ${attrs} ${on?"checked":""} ${disabled?"disabled":""}><span></span></label>`;
+const chips = xs => (xs || []).map(x => `<span class="tag">${esc(x)}</span>`).join("") || `<span class="hint">-</span>`;
+const fileB64 = file => new Promise((ok, bad) => { const r = new FileReader();
+  r.onload = () => ok(String(r.result).split(",")[1]); r.onerror = () => bad(new Error("couldn't read the file")); r.readAsDataURL(file); });
+const needUser = () => { if(devUser()) return true; toast("Type your name at the bottom of the side menu first: uploads are logged with it."); $("#devuser").focus(); return false; };
+
+function buildNav(){
+  const nav = document.createElement("nav");
+  nav.id = "devnav"; nav.setAttribute("aria-label", "Control room");
+  nav.innerHTML = `<div class="grp">Agent</div><a data-screen="console">Live console</a>
+    <div class="grp">Product</div><a data-screen="guardrails">Guardrails <i id="nav-g"></i></a>
+    <a data-screen="golden">Golden rules <i id="nav-gold"></i></a><a data-screen="evals">Evals <i id="nav-e"></i></a>
+    <div class="grp">Dev</div><a data-screen="models">Models <i id="nav-m"></i></a>
+    <div class="grp">Analytics</div><a data-screen="analytics">Deflection &amp; time saved</a>
+    <div class="foot">Your name (logged on uploads and edits)<input id="devuser" placeholder="e.g. Marwan" autocomplete="name">
+      <button class="lnk" id="cr-reset">Restore default settings</button></div>`;
+  document.body.insertBefore(nav, $("main"));
+  const sc = document.createElement("section"); sc.id = "screen"; sc.setAttribute("aria-live", "polite");
+  $("main").after(sc);
+  $("#devuser").value = store.get("nova.devuser") || "";
+  $("#devuser").oninput = e => store.set("nova.devuser", e.target.value.trim());
+  nav.querySelectorAll("a[data-screen]").forEach(a => a.onclick = () => go(a.dataset.screen));
+  $("#cr-reset").onclick = async () => {
+    if(!confirm("Restore default guardrails, models and assumptions? Golden sets and eval results are kept.")) return;
+    await api("POST", "/api/control/reset"); toast("Default settings restored."); go(screen);
+  };
+}
+
+async function go(name){
+  screen = SCREENS[name] ? name : "console"; store.set("nova.screen", screen);
+  document.querySelectorAll("#devnav a[data-screen]").forEach(a => a.classList.toggle("on", a.dataset.screen === screen));
+  document.body.classList.toggle("screen-on", screen !== "console");
+  clearInterval(cr.poll); cr.poll = null;
+  if(screen === "console"){ refreshDev(); refreshNav(); if(current) openCase(current); return; }
+  $("#screen").innerHTML = `<div class="empty">Loading…</div>`;
+  try{ await ({guardrails:renderGuardrails, golden:renderGolden, evals:renderEvals, models:renderModels, analytics:renderAnalytics})[screen](); }
+  catch(e){ $("#screen").innerHTML = `<div class="panel"><b>Couldn't load ${esc(SCREENS[screen])}</b><p class="hint">${esc(e.message)}</p></div>`; }
+  refreshNav();
+}
+async function refreshNav(){
+  try{
+    const c = cr.ctrl = await api("GET", "/api/control");
+    $("#nav-g").textContent = c.guardrails.filter(g => g.enabled).length;
+    $("#nav-gold").textContent = c.golden_count;
+    $("#nav-m").textContent = c.models.filter(m => m.enabled).length;
+    if(c.simulate_outage) $("#nav-m").textContent = "outage";
+  } catch {}
+}
+
+// ---- Guardrails --------------------------------------------------------------------------------
+async function renderGuardrails(){
+  const c = cr.ctrl = await api("GET", "/api/control");
+  const row = g => {
+    const sev = g.kind === "input" ? `<span class="sev role">Raises risk</span>` : g.enabled
+      ? `<select class="s" data-sev="${esc(g.key)}" ${g.locked?"disabled":""} aria-label="Action for ${esc(g.name)}">
+           <option value="block" ${g.severity==="block"?"selected":""}>Block the draft</option><option value="warn" ${g.severity==="warn"?"selected":""}>Warn only</option></select>`
+      : `<span class="sev off">Off</span>`;
+    const actions = g.kind === "custom" ? `<button class="lnk" data-edit="${esc(g.key)}">Edit</button><button class="lnk bad" data-del="${esc(g.key)}">Delete</button>`
+      : g.locked ? `<span class="hint" title="Bank secrecy and human approval can't be switched off">🔒 Locked</span>` : "";
+    return `<tr><td>${sw(`data-on="${esc(g.key)}" data-kind="${g.kind}" aria-label="${esc(g.name)} on or off"`, g.enabled, g.locked)}</td>
+      <td><b>${esc(g.name)}</b><div class="d">${esc(g.description)}</div></td><td>${sev}</td>
+      <td style="text-align:right">${g.caught}</td><td>${actions}</td></tr>`;
+  };
+  const table = (title, rows, hint) => `<div class="panel"><h2>${title}</h2>${hint ? `<div class="note-l" style="margin:-6px 0 8px">${hint}</div>` : ""}
+    <table class="grid-t"><tr><th style="width:50px">On</th><th>Guardrail</th><th style="width:170px">Action</th><th style="width:80px;text-align:right">Caught</th><th style="width:120px"></th></tr>
+    ${rows.map(row).join("") || `<tr><td colspan="5" class="hint">None yet. Add one above.</td></tr>`}</table></div>`;
+  const by = k => c.guardrails.filter(g => g.kind === k);
+  $("#screen").innerHTML = `<h1>Guardrails</h1>
+    <p class="lead">Checks on every draft before an agent sees it. A blocking check stops the draft and the copilot retries once; a warning shows it with a flag. Changes apply to the next draft. Open the live console and ask the copilot again to see the effect.</p>
+    <div class="bar"><button class="primary" id="g-add">+ Add guardrail</button><button id="g-try">Try it on a live case →</button>
+      <span class="hint">"Caught" counts failures in the audit log.</span></div>
+    <div id="g-form"></div>
+    ${table("Your guardrails", by("custom"), "Phrase rules you add. They check the reply (both languages) or the customer's message.")}
+    ${table("Draft checks · built in", by("output"))}
+    ${table("Customer message checks · built in", by("input"), "These raise the case's risk label: in auto-reply, a high-risk case waits for a human.")}`;
+  $("#g-add").onclick = () => guardForm({});
+  $("#g-try").onclick = () => go("console");
+  document.querySelectorAll("[data-on]").forEach(el => el.onchange = () => {
+    const key = el.dataset.on;
+    const p = el.dataset.kind === "custom"
+      ? api("POST", "/api/control/guardrails/custom", {...c.guardrails.find(g => g.key === key), enabled: el.checked})
+      : api("POST", `/api/control/guardrails/${encodeURIComponent(key)}`, {enabled: el.checked});
+    p.then(() => { toast(`${el.checked ? "On" : "Off"}: applies to the next draft.`); renderGuardrails(); refreshNav(); })
+     .catch(e => { toast(e.message); el.checked = !el.checked; });
+  });
+  document.querySelectorAll("[data-sev]").forEach(el => el.onchange = () => {
+    const key = el.dataset.sev, g = c.guardrails.find(x => x.key === key);
+    const p = g.kind === "custom" ? api("POST", "/api/control/guardrails/custom", {...g, severity: el.value})
+                                  : api("POST", `/api/control/guardrails/${encodeURIComponent(key)}`, {severity: el.value});
+    p.then(() => toast(el.value === "block" ? "Now blocks the draft." : "Now warns only.")).catch(e => toast(e.message));
+  });
+  document.querySelectorAll("[data-edit]").forEach(el => el.onclick = () => guardForm(c.guardrails.find(g => g.key === el.dataset.edit)));
+  document.querySelectorAll("[data-del]").forEach(el => el.onclick = async () => {
+    if(!confirm("Delete this guardrail?")) return;
+    await api("DELETE", `/api/control/guardrails/custom/${encodeURIComponent(el.dataset.del)}`); toast("Guardrail deleted."); renderGuardrails(); refreshNav();
+  });
+}
+function guardForm(g){
+  $("#g-form").innerHTML = `<div class="panel"><h2>${g.key ? "Edit guardrail" : "New guardrail"}</h2><div class="form">
+    <label class="w2">Name<input class="s" id="gf-name" value="${esc(g.name || "")}" placeholder="e.g. Refund promise"></label>
+    <label>Checks<select class="s" id="gf-target"><option value="reply">The copilot's reply</option><option value="message" ${g.target==="message"?"selected":""}>The customer's message</option></select></label>
+    <label>When found<select class="s" id="gf-sev"><option value="block">Block the draft</option><option value="warn" ${g.severity==="warn"?"selected":""}>Warn only</option></select></label>
+    <label class="w4">Phrases, one per line (any language; not case sensitive)<textarea class="s" id="gf-phrases" placeholder="we will refund&#10;سنقوم برد">${esc((g.phrases || []).join("\n"))}</textarea></label></div>
+    <div class="bar" style="margin:12px 0 0"><button class="primary" id="gf-save">Save guardrail</button><button id="gf-cancel">Cancel</button></div></div>`;
+  $("#gf-name").focus();
+  $("#gf-cancel").onclick = () => $("#g-form").innerHTML = "";
+  $("#gf-save").onclick = async () => {
+    try{
+      await api("POST", "/api/control/guardrails/custom", {id: g.key || null, name: $("#gf-name").value, target: $("#gf-target").value,
+        severity: $("#gf-sev").value, enabled: g.enabled ?? true, phrases: $("#gf-phrases").value.split("\n")});
+      toast("Saved. The next draft is checked against it."); renderGuardrails(); refreshNav();
+    } catch(e){ toast(e.message); }
+  };
+}
+
+// ---- Golden rules (golden sets) ------------------------------------------------------------------
+async function renderGolden(){
+  const [g, ev] = await Promise.all([api("GET", `/api/control/golden${cr.goldenSet ? `?set=${encodeURIComponent(cr.goldenSet)}` : ""}`),
+                                     api("GET", "/api/control/evals")]);
+  cr.golden = g; cr.goldenSet = g.set; cr.evals = ev;
+  const set = g.sets.find(s => s.id === g.set), o = (cr.ctrl || await api("GET", "/api/control")).options;
+  const q = (cr.gq || "").toLowerCase(), t = cr.gt || "";
+  const list = g.cases.filter(c => (!t || c.type === t) && (!q || JSON.stringify(c).toLowerCase().includes(q)));
+  const res = id => { const r = set.active && ev.latest[id]; return !r ? `<span class="hint">-</span>` : `<span class="sev ${r.passed?"pass":"block"}">${r.passed?"Pass":"Fail"}</span>`; };
+  $("#screen").innerHTML = `<h1>Golden rules</h1>
+    <p class="lead">The golden set: test questions with the answer and source the copilot must give. The evals score every draft against it. Edit a case here, or download the set, work on it in Excel, and upload it back as a new named batch.</p>
+    <div class="panel"><div class="bar" style="margin:0">
+      <label class="hint">Set <select class="s" id="gs-pick">${g.sets.map(s => `<option value="${esc(s.id)}" ${s.id===g.set?"selected":""}>${esc(s.name)} · ${s.count} cases${s.active?" · used by evals":""}</option>`).join("")}</select></label>
+      ${set.active ? `<span class="sev pass">✓ Used by evals</span>` : `<button id="gs-use">Use this set for evals</button>`}
+      <span class="hint">${set.at ? `Uploaded by ${esc(set.by)} · ${fmtAt(set.at)}${set.file ? " · " + esc(set.file) : ""}` : "Base set, written by the Nova team"}</span>
+      <span style="flex:1"></span>${set.id !== "golden_set" ? `<button class="lnk bad" id="gs-del">Delete this set</button>` : ""}</div></div>
+    <div class="bar"><button class="primary" id="gc-add">+ Add case</button>
+      <a href="/api/control/golden/download?set=${encodeURIComponent(g.set)}"><button>⬇ Download .xlsx</button></a>
+      <button id="gs-up">⬆ Upload new batch</button>
+      <span style="flex:1"></span><input class="s" id="gc-q" placeholder="Search" value="${esc(cr.gq || "")}">
+      <select class="s" id="gc-t"><option value="">All types</option>${o.types.map(x => `<option ${x===t?"selected":""}>${x}</option>`).join("")}</select></div>
+    <div id="gc-form"></div>
+    <div class="panel" style="padding:4px 8px"><table class="grid-t"><tr><th>ID</th><th>Type</th><th>Lang</th><th>Question</th><th>Benchmark answer</th><th>Must flag / suggest</th><th>Last eval</th><th></th></tr>
+    ${list.map(c => `<tr><td><b>${esc(c.id)}</b></td><td>${esc(c.type)}<div class="d">${esc(c.intent)}</div></td><td>${esc(c.language)}</td>
+      <td><div class="clip" ${rtl(c.language)?'dir="rtl"':""}>${esc(c.question)}</div>${c.notes ? `<div class="d">📝 ${esc(c.notes)}</div>` : ""}</td>
+      <td><div class="clip">${esc(c.benchmark_answer)}</div><div class="d">${esc(c.benchmark_location || "no source: say it isn't covered")}</div></td>
+      <td>${chips([...c.must_flag, ...c.must_suggest])}</td><td>${res(c.id)}</td>
+      <td style="white-space:nowrap"><button class="lnk" data-gedit="${esc(c.id)}">Edit</button><button class="lnk bad" data-gdel="${esc(c.id)}">Delete</button></td></tr>`).join("")
+      || `<tr><td colspan="8" class="hint">No cases match.</td></tr>`}</table></div>`;
+  $("#gs-pick").onchange = e => { cr.goldenSet = e.target.value; renderGolden(); };
+  $("#gs-use") && ($("#gs-use").onclick = async () => { await api("POST", `/api/control/golden-sets/${encodeURIComponent(g.set)}/active`);
+    toast(`Evals now run on "${set.name}".`); renderGolden(); refreshNav(); });
+  $("#gs-del") && ($("#gs-del").onclick = async () => { if(!confirm(`Delete the set "${set.name}"? The base set stays.`)) return;
+    await api("DELETE", `/api/control/golden-sets/${encodeURIComponent(g.set)}`); cr.goldenSet = null; toast("Set deleted."); renderGolden(); refreshNav(); });
+  $("#gc-q").oninput = e => { cr.gq = e.target.value; clearTimeout(cr.gqT); cr.gqT = setTimeout(() => renderGolden().then(() => { $("#gc-q").focus(); $("#gc-q").setSelectionRange(99, 99); }), 250); };
+  $("#gc-t").onchange = e => { cr.gt = e.target.value; renderGolden(); };
+  $("#gc-add").onclick = () => goldenForm({type:"grounded", intent:"dispute_status", language:"en", customer_id:"C001", expect_answer_found:true, must_flag:[], must_suggest:[]});
+  $("#gs-up").onclick = uploadBatchForm;
+  document.querySelectorAll("[data-gedit]").forEach(el => el.onclick = () => goldenForm(g.cases.find(c => c.id === el.dataset.gedit)));
+  document.querySelectorAll("[data-gdel]").forEach(el => el.onclick = async () => {
+    if(!confirm(`Delete ${el.dataset.gdel} from "${set.name}"?`)) return;
+    await api("DELETE", `/api/control/golden/${el.dataset.gdel}?set=${encodeURIComponent(g.set)}`); toast(`${el.dataset.gdel} deleted.`); renderGolden(); refreshNav();
+  });
+  if(cr.editGolden){ const c = g.cases.find(x => x.id === cr.editGolden); cr.editGolden = null; if(c) goldenForm(c); }
+}
+function goldenForm(c){
+  const o = cr.ctrl.options, opt = (xs, v) => xs.map(x => `<option ${x===v?"selected":""}>${x}</option>`).join("");
+  const multi = (id, xs, sel) => `<select class="s" id="${id}" multiple size="4">${xs.map(x => `<option ${sel.includes(x)?"selected":""}>${x}</option>`).join("")}</select>`;
+  $("#gc-form").innerHTML = `<div class="panel"><h2>${c.id ? `Edit ${esc(c.id)} · tighten what it requires` : "New golden case"}</h2><div class="form">
+    <label>Type<select class="s" id="gf-type">${opt(o.types, c.type)}</select></label>
+    <label>Intent<select class="s" id="gf-intent">${opt(o.intents, c.intent)}</select></label>
+    <label>Language<select class="s" id="gf-lang">${opt(o.languages, c.language)}</select></label>
+    <label>Customer<select class="s" id="gf-cust">${o.customers.map(x => `<option value="${x.id}" ${x.id===c.customer_id?"selected":""}>${x.id} · ${esc(x.name)}</option>`).join("")}</select></label>
+    <label class="w4">Customer question<textarea class="s" id="gf-q">${esc(c.question || "")}</textarea></label>
+    <label class="w4">Benchmark answer (ground truth)<textarea class="s" id="gf-a">${esc(c.benchmark_answer || "")}</textarea></label>
+    <label class="w2">Benchmark location (sources it must cite, ; between)<input class="s" id="gf-loc" value="${esc(c.benchmark_location || "")}" placeholder="D-1001; POL-05 §4"></label>
+    <label>Sources answer it?<select class="s" id="gf-found"><option value="true">Yes</option><option value="false" ${c.expect_answer_found===false?"selected":""}>No: must say so</option></select></label>
+    <label>Notes<input class="s" id="gf-notes" value="${esc(c.notes || "")}"></label>
+    <label class="w2">Must flag (Ctrl-click for several)${multi("gf-flag", o.flags, c.must_flag || [])}</label>
+    <label class="w2">Must suggest one of${multi("gf-sug", o.actions, c.must_suggest || [])}</label></div>
+    <div class="bar" style="margin:12px 0 0"><button class="primary" id="gf-save">Save case</button><button id="gf-cancel">Cancel</button>
+      <span class="hint">Saved to "${esc(cr.golden.sets.find(s => s.id === cr.goldenSet).name)}". Rerun it from Evals to see the effect.</span></div></div>`;
+  $("#gc-form").scrollIntoView({behavior:"smooth", block:"start"});
+  $("#gf-cancel").onclick = () => $("#gc-form").innerHTML = "";
+  const sel = id => [...$(id).selectedOptions].map(x => x.value);
+  $("#gf-save").onclick = async () => {
+    try{
+      const saved = await api("POST", `/api/control/golden?set=${encodeURIComponent(cr.goldenSet)}`, {id: c.id || null, type: $("#gf-type").value,
+        intent: $("#gf-intent").value, language: $("#gf-lang").value, customer_id: $("#gf-cust").value, question: $("#gf-q").value,
+        benchmark_answer: $("#gf-a").value, benchmark_location: $("#gf-loc").value, expect_answer_found: $("#gf-found").value === "true",
+        notes: $("#gf-notes").value, must_flag: sel("#gf-flag"), must_suggest: sel("#gf-sug")});
+      toast(`${saved.id} saved.`); renderGolden(); refreshNav();
+    } catch(e){ toast(e.message); }
+  };
+}
+function uploadBatchForm(){
+  $("#gc-form").innerHTML = `<div class="panel"><h2>Upload a new batch</h2>
+    <p class="hint" style="margin-top:0">Use the downloaded sheet as the template (.xlsx or .csv). Leave id empty for new cases. The batch becomes its own set; pick it above and choose "Use this set for evals". If any row is invalid, nothing is uploaded and you'll see which rows to fix.</p>
+    <div class="form"><label class="w2">Batch name<input class="s" id="ub-name" placeholder="e.g. Fee edge cases, week 2"></label>
+      <label class="w2">File<input class="s" type="file" id="ub-file" accept=".xlsx,.csv"></label></div>
+    <div class="bar" style="margin:12px 0 0"><button class="primary" id="ub-go">Upload batch</button><button id="ub-cancel">Cancel</button>
+      <span class="hint">Logged as uploaded by ${esc(devUser() || "(type your name in the side menu)")} with the date and time.</span></div></div>`;
+  $("#ub-cancel").onclick = () => $("#gc-form").innerHTML = "";
+  $("#ub-go").onclick = async () => {
+    const f = $("#ub-file").files[0];
+    if(!needUser()) return;
+    if(!$("#ub-name").value.trim()) return toast("Name the batch first.");
+    if(!f) return toast("Choose a file first.");
+    try{
+      const r = await api("POST", "/api/control/golden/upload", {filename: f.name, data_b64: await fileB64(f), name: $("#ub-name").value, by: devUser()});
+      cr.goldenSet = r.id; toast(`"${r.name}" uploaded: ${r.count} cases, by ${r.by}.`); renderGolden(); refreshNav();
+    } catch(e){ toast(e.message); $("#gc-form .hint:last-child").textContent = e.message; }
+  };
+}
+
+// ---- Evals ------------------------------------------------------------------------------------
+async function renderEvals(){
+  const ev = cr.evals = await api("GET", "/api/control/evals");
+  const sets = (await api("GET", "/api/control/golden")).sets, set = sets.find(s => s.active);
+  const last = ev.history.find(h => h.total >= ev.cases.length) || ev.history[0];
+  const rows = ev.cases.map(c => ({c, r: ev.latest[c.id], n: ev.notes[c.id] || []}));
+  const failing = rows.filter(x => x.r && !x.r.passed).map(x => x.c.id);
+  const passN = rows.filter(x => x.r?.passed).length, ran = rows.filter(x => x.r).length;
+  if(ev.running && !cr.poll) cr.poll = setInterval(() => { if(screen === "evals") renderEvals(); }, 4000);
+  if(!ev.running && cr.poll){ clearInterval(cr.poll); cr.poll = null; toast("Eval run finished."); }
+  const pct = v => v == null ? "-" : Math.round(v * 100) + "%";
+  $("#screen").innerHTML = `<h1>Evals</h1>
+    <p class="lead">Each golden case goes through the real copilot, then a judge model and code checks score it for helpfulness, honesty and harmlessness. A case passes only if it is honest, harmless, matches the benchmark and reaches the agent. Running uses the current guardrails and models, so a settings change shows up here.</p>
+    ${ev.running ? `<div class="banner"><span class="spinner" style="border-color:#c9d6e6;border-top-color:var(--brand-2)"></span> Running ${ev.running_ids.length} case${ev.running_ids.length>1?"s":""} on "${esc(ev.running_set)}"… about 20 seconds a case, in parallel. This page refreshes itself.</div>`
+      : ev.last_exit ? `<div class="banner warn">The last run stopped with an error. Check app/logs/eval_run.log.</div>` : ""}
+    <div class="kpis"><div class="kpi"><b>${passN} / ${ev.cases.length}</b><span>cases passing (latest result each) · ${ran} run</span></div>
+      <div class="kpi"><b>${pct(last?.Helpfulness)}</b><span>Helpful · last full run</span></div><div class="kpi"><b>${pct(last?.Honesty)}</b><span>Honest</span></div>
+      <div class="kpi"><b>${pct(last?.Harmlessness)}</b><span>Harmless</span></div>
+      <div class="kpi"><b>${last?.avg_cost_usd_per_answer != null ? "$" + last.avg_cost_usd_per_answer : "-"}</b><span>per answer · ${esc(last?.model || "")}</span></div></div>
+    <div class="bar"><span class="hint">Golden set: <b>${esc(set.name)}</b> (${set.count} cases)</span>
+      <button class="primary" id="ev-all" ${ev.running?"disabled":""}>▶ Run all</button>
+      <button id="ev-fail" ${ev.running || !failing.length ? "disabled" : ""}>Rerun failing (${failing.length})</button>
+      <span style="flex:1"></span><a href="/api/control/evals/download"><button>⬇ Download results + Notes column</button></a>
+      <button id="ev-up">⬆ Upload notes</button></div>
+    <div id="ev-form"></div>
+    <div class="panel" style="padding:4px 8px"><table class="grid-t"><tr><th>ID</th><th>Question</th><th>Result</th><th>Why it failed</th><th>Review notes</th><th></th></tr>
+    ${rows.map(({c, r, n}) => { const ln = n[n.length - 1];
+      return `<tr><td><b>${esc(c.id)}</b><div class="d">${esc(c.language)}</div></td>
+      <td><div class="clip" ${rtl(c.language)?'dir="rtl"':""}>${esc(c.question)}</div></td>
+      <td>${ev.running_ids.includes(c.id) ? `<span class="sev role">Running…</span>` : !r ? `<span class="hint">Not run</span>`
+        : `<span class="sev ${r.passed?"pass":"block"}">${r.passed?"Pass":"Fail"}</span><div class="d">${esc(r.stamp)}</div>`}</td>
+      <td><div class="clip">${r && !r.passed ? esc((r.failed || []).join("; ") || r.error || r.reason) : ""}</div></td>
+      <td>${ln ? `<div class="clip">${esc(ln.note)}</div><div class="d">${esc(ln.by)} · ${fmtAt(ln.at)}${n.length>1?` · ${n.length} notes`:""}</div>` : `<span class="hint">-</span>`}</td>
+      <td style="white-space:nowrap"><button class="lnk" data-run="${esc(c.id)}" ${ev.running?"disabled":""}>Rerun</button><button class="lnk" data-tight="${esc(c.id)}">Tighten</button></td></tr>`; }).join("")}</table></div>
+    <div class="panel"><h2>Run history</h2><table class="grid-t"><tr><th>Run</th><th>Golden set</th><th>Passed</th><th>Helpful</th><th>Honest</th><th>Harmless</th><th>Model</th></tr>
+      ${ev.history.slice(0, 10).map(h => `<tr><td>${esc(h.stamp)}</td><td>${esc(h.golden_set)}</td><td>${h.passed} / ${h.total}</td><td>${pct(h.Helpfulness)}</td><td>${pct(h.Honesty)}</td><td>${pct(h.Harmlessness)}</td><td>${esc(h.model || "")}</td></tr>`).join("")}</table></div>`;
+  const run = async ids => {
+    if(!ids.length && !confirm(`Run all ${set.count} cases? It uses the API: roughly $${(set.count * ((last?.avg_cost_usd_per_answer || 0.04) * 2)).toFixed(2)} and a few minutes.`)) return;
+    try{ const r = await api("POST", "/api/control/evals/run", {ids}); toast(`Running ${r.ids.length} case${r.ids.length>1?"s":""}…`); renderEvals(); }
+    catch(e){ toast(e.message); }
+  };
+  $("#ev-all").onclick = () => run([]);
+  $("#ev-fail").onclick = () => run(failing);
+  document.querySelectorAll("[data-run]").forEach(el => el.onclick = () => run([el.dataset.run]));
+  document.querySelectorAll("[data-tight]").forEach(el => el.onclick = () => { cr.goldenSet = ev.active_set; cr.editGolden = el.dataset.tight; go("golden"); });
+  $("#ev-up").onclick = () => {
+    $("#ev-form").innerHTML = `<div class="panel"><h2>Upload review notes</h2>
+      <p class="hint" style="margin-top:0">Download the results, write in the Notes column next to each case, then upload the file here. Every note is logged with your name and the date and time.</p>
+      <div class="bar" style="margin:0"><input class="s" type="file" id="en-file" accept=".xlsx,.csv"><button class="primary" id="en-go">Upload notes</button><button id="en-cancel">Cancel</button>
+      <span class="hint">As ${esc(devUser() || "(type your name in the side menu)")}</span></div></div>`;
+    $("#en-cancel").onclick = () => $("#ev-form").innerHTML = "";
+    $("#en-go").onclick = async () => {
+      const f = $("#en-file").files[0];
+      if(!needUser()) return; if(!f) return toast("Choose a file first.");
+      try{ const r = await api("POST", "/api/control/evals/notes", {filename: f.name, data_b64: await fileB64(f), by: devUser()});
+        toast(`${r.count} note${r.count>1?"s":""} logged by ${r.by}.`); renderEvals(); }
+      catch(e){ toast(e.message); }
+    };
+  };
+}
+
+// ---- Models -----------------------------------------------------------------------------------
+async function renderModels(){
+  const c = cr.ctrl = await api("GET", "/api/control");
+  const prim = c.models.find(m => m.role === "primary" && m.enabled), back = c.models.find(m => m.role === "backup" && m.enabled);
+  const money = p => `$${p[0]} in · $${p[1]} out`;
+  $("#screen").innerHTML = `<h1>Models</h1>
+    <p class="lead">The primary model drafts every reply. If it fails (outage, timeout, error), the copilot retries the same request on the backup and the draft says so in dev mode. The guardrails run the same way on either model.</p>
+    <div class="panel"><h2>Right now</h2><div class="chain">
+      <div class="node ${c.simulate_outage ? "down" : "live"}">Primary · ${esc(prim?.label || "none")}</div><span>→ if it fails →</span>
+      <div class="node ${c.simulate_outage && back ? "live" : ""}">Backup · ${esc(back?.label || "none set")}</div>
+      <span>→ if both fail, the last good draft for that case is replayed, marked as a replay</span></div>
+      <div class="bar" style="margin:14px 0 0">${sw('id="m-out" aria-label="Simulate primary outage"', c.simulate_outage)}
+        <b>Simulate a primary outage</b><span class="hint">Turn on, then ask the copilot on a live case: the draft comes from the backup.</span>
+        <button id="m-try">Try it on a live case →</button></div></div>
+    <div class="bar"><button class="primary" id="m-add">+ Add model</button></div><div id="m-form"></div>
+    <div class="panel" style="padding:4px 8px"><table class="grid-t"><tr><th style="width:50px">On</th><th>Model</th><th>Role</th><th>Price per million tokens</th><th></th></tr>
+    ${c.models.map(m => `<tr><td>${sw(`data-men="${esc(m.id)}" aria-label="${esc(m.label)} on or off"`, m.enabled, m.role === "primary")}</td>
+      <td><b>${esc(m.label)}</b><div class="d">${esc(m.id)}</div></td>
+      <td>${m.role ? `<span class="sev ${m.role==="primary"?"role":"warn"}">${m.role === "primary" ? "Primary" : "Backup"}</span>` : `<span class="hint">-</span>`}</td>
+      <td>${money(m.prices)}<div class="d">cache write $${m.prices[2]} · read $${m.prices[3]}</div></td>
+      <td style="white-space:nowrap">${m.role !== "primary" ? `<button class="lnk" data-mrole="${esc(m.id)}" data-r="primary">Make primary</button>` : ""}
+        ${!m.role ? `<button class="lnk" data-mrole="${esc(m.id)}" data-r="backup">Set as backup</button>` : ""}
+        ${m.role === "backup" ? `<button class="lnk" data-mrole="${esc(m.id)}" data-r="none">Remove as backup</button>` : ""}
+        <button class="lnk" data-medit="${esc(m.id)}">Edit</button>
+        ${m.role !== "primary" ? `<button class="lnk bad" data-mdel="${esc(m.id)}">Remove</button>` : ""}</td></tr>`).join("")}</table></div>`;
+  $("#m-out").onchange = async e => { await api("POST", "/api/control/outage", {on: e.target.checked});
+    toast(e.target.checked ? "Primary marked down: new drafts come from the backup." : "Primary is back."); renderModels(); refreshNav(); };
+  $("#m-try").onclick = () => go("console");
+  $("#m-add").onclick = () => modelForm({prices:[]});
+  document.querySelectorAll("[data-medit]").forEach(el => el.onclick = () => modelForm(c.models.find(m => m.id === el.dataset.medit)));
+  document.querySelectorAll("[data-men]").forEach(el => el.onchange = () => api("POST", `/api/control/models/${encodeURIComponent(el.dataset.men)}`, {enabled: el.checked})
+    .then(() => { renderModels(); refreshNav(); }).catch(e => { toast(e.message); el.checked = !el.checked; }));
+  document.querySelectorAll("[data-mrole]").forEach(el => el.onclick = () => api("POST", `/api/control/models/${encodeURIComponent(el.dataset.mrole)}`, {role: el.dataset.r})
+    .then(r => { toast(`Order now: ${r.model_chain.join(" → ")}`); renderModels(); refreshNav(); }).catch(e => toast(e.message)));
+  document.querySelectorAll("[data-mdel]").forEach(el => el.onclick = async () => { if(!confirm(`Remove ${el.dataset.mdel}?`)) return;
+    try{ await api("DELETE", `/api/control/models/${encodeURIComponent(el.dataset.mdel)}`); renderModels(); refreshNav(); } catch(e){ toast(e.message); } });
+}
+function modelForm(m){
+  const p = m.prices || [];
+  $("#m-form").innerHTML = `<div class="panel"><h2>${m.id ? "Edit model" : "Add a model"}</h2><div class="form">
+    <label class="w2">Model ID (as the API names it)<input class="s" id="mf-id" value="${esc(m.id || "")}" ${m.id?"readonly":""} placeholder="claude-sonnet-5-5"></label>
+    <label class="w2">Display name<input class="s" id="mf-label" value="${esc(m.label || "")}" placeholder="Claude Sonnet 5.5"></label>
+    ${["Input", "Output", "Cache write", "Cache read"].map((l, i) => `<label>${l} $ / M tokens<input class="s" type="number" min="0" step="0.01" data-mp="${i}" value="${p[i] ?? ""}"></label>`).join("")}</div>
+    <div class="bar" style="margin:12px 0 0"><button class="primary" id="mf-save">Save model</button><button id="mf-cancel">Cancel</button>
+      <span class="hint">Prices drive the cost shown on each draft. A new model starts with no role: make it primary or backup from the table.</span></div></div>`;
+  $("#mf-cancel").onclick = () => $("#m-form").innerHTML = "";
+  $("#mf-save").onclick = async () => {
+    try{ await api("POST", "/api/control/models", {id: $("#mf-id").value.trim(), label: $("#mf-label").value,
+           enabled: m.enabled ?? true, prices: [...document.querySelectorAll("[data-mp]")].map(x => Number(x.value))});
+      toast("Model saved."); renderModels(); refreshNav(); } catch(e){ toast(e.message); }
+  };
+}
+
+// ---- Analytics --------------------------------------------------------------------------------
+// Copilot-mode edits: how much agents changed the draft before sending. Click a band to list those sends and download them.
+function editsPanel(e){
+  const max = Math.max(1, ...e.bands.map(b => b.count));
+  return `<div class="panel"><h2>Copilot drafts edited before sending · copilot mode</h2>
+    <div class="kpis" style="margin-bottom:10px">
+      <div class="kpi"><b>${e.edited} of ${e.sent}</b><span>drafts edited before sending (${e.edited_pct}%) · ${e.as_drafted} sent as drafted</span></div>
+      <div class="kpi"><b>${e.avg_change_when_edited_pct}%</b><span>of the draft changed, on average, when the agent edited it</span></div>
+      <div class="kpi"><b>${e.avg_change_pct}%</b><span>average change across all sends (unedited count as 0%)</span></div>
+      <div class="kpi"><b>${e.flagged}</b><span>drafts flagged by agents as wrong</span></div></div>
+    ${e.bands.map(b => `<button class="hbar bandrow ${cr.editBand === b.key ? "on" : ""}" data-band="${b.key}" title="Show the ${b.count} send${b.count === 1 ? "" : "s"}: ${b.label}">
+      <span>${b.label}</span><div class="t"><div class="f" style="width:${100 * b.count / max}%"></div></div><span class="v">${b.count}</span></button>`).join("")}
+    <div class="bar" style="margin:10px 0 0"><span class="hint">Click a row to see those sends. % changed = share of the draft's words the agent changed.</span>
+      <span style="flex:1"></span><a href="/api/control/analytics/edits/download"><button>⬇ Download all sends</button></a></div>
+    <div id="edit-list"></div></div>`;
+}
+function bindEdits(){
+  document.querySelectorAll("[data-band]").forEach(b => b.onclick = () => {
+    cr.editBand = cr.editBand === b.dataset.band ? null : b.dataset.band;
+    document.querySelectorAll("[data-band]").forEach(x => x.classList.toggle("on", x.dataset.band === cr.editBand));
+    showEdits();
+  });
+  if(cr.editBand) showEdits();
+}
+async function showEdits(){
+  const box = $("#edit-list");
+  if(!cr.editBand){ box.innerHTML = ""; return; }
+  const label = $(`[data-band="${cr.editBand}"] span`).textContent;
+  const rows = await api("GET", `/api/control/analytics/edits?band=${cr.editBand}`);
+  const txt = t => { const ar = /[\u0600-\u06FF]/.test(t || ""); return `<div class="clip" ${ar ? 'dir="rtl"' : ""}>${esc(t || "-")}</div>`; };
+  box.innerHTML = `<div class="bar" style="margin:14px 0 8px"><b>${esc(label)}</b><span class="hint">${rows.length} send${rows.length === 1 ? "" : "s"}, biggest change first</span>
+      <span style="flex:1"></span>${rows.length ? `<a href="/api/control/analytics/edits/download?band=${cr.editBand}"><button class="primary">⬇ Download these (.xlsx)</button></a>` : ""}</div>
+    ${rows.length ? `<table class="grid-t"><tr><th>Case</th><th>Sent</th><th style="text-align:right">Changed</th><th>Copilot draft</th><th>What the agent sent</th></tr>
+      ${rows.map(r => `<tr><td><b>${esc(r.case_id)}</b></td><td>${fmtAt(r.at)}</td><td style="text-align:right">${r.changed_pct}%</td>
+        <td>${txt(r.drafted_reply)}</td><td>${txt(r.final_reply)}</td></tr>`).join("")}</table>` : `<p class="hint">No sends in this band yet.</p>`}`;
+}
+
+async function renderAnalytics(){
+  const a = await api("GET", "/api/control/analytics");
+  const n = x => Number(x).toLocaleString(undefined, {maximumFractionDigits: 1});
+  const max = Math.max(1, ...Object.values(a.auto_outcomes));
+  const OUT = {resolved:"Resolved by copilot", escalated:"Escalated by copilot", awaiting_approval:"Waited for approval", needs_agent:"Sent to an agent"};
+  const days = a.by_day.slice(-14), dmax = Math.max(1, ...days.map(d => d.minutes));
+  const hmode = Object.entries(a.avg_handle_s_by_mode), hmax = Math.max(1, ...hmode.map(([, v]) => v));
+  const MODE = {shadow:"Shadow (agent alone)", copilot:"Copilot", auto:"Auto-reply approvals"};
+  $("#screen").innerHTML = `<h1>Deflection &amp; time saved</h1>
+    <p class="lead">From the audit log: every chat handled in this console, in all three modes. Deflected means the copilot answered the customer on its own in auto-reply, with no human. The minutes use the assumptions at the bottom, which you can change.</p>
+    <div class="kpis">
+      <div class="kpi"><b>${a.deflected}</b><span>chats deflected · ${a.deflection_pct}% of ${a.assessed_by_copilot} the copilot assessed</span></div>
+      <div class="kpi"><b>${n(a.minutes_saved)} min</b><span>agent minutes saved (${n(a.minutes_saved / 60)} hours)</span></div>
+      <div class="kpi"><b>${n(a.minutes_per_chat)} min</b><span>saved per chat handled</span></div>
+      <div class="kpi"><b>${a.chats_handled}</b><span>chats handled · ${a.assisted_sends} with a copilot draft · ${a.shadow_sends} shadow</span></div></div>
+    ${editsPanel(a.copilot_edits)}
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px">
+      <div class="panel"><h2>Auto-reply outcomes</h2>
+        ${Object.entries(a.auto_outcomes).map(([k, v]) => `<div class="hbar" title="${OUT[k]}: ${v}"><span>${OUT[k]}</span><div class="t"><div class="f" style="width:${100 * v / max}%"></div></div><span class="v">${v}</span></div>`).join("")}
+        <div class="note-l">Only "Resolved by copilot" counts as deflected. Escalated chats went to a human team with the copilot's reply already sent.</div></div>
+      <div class="panel"><h2>Average handle time by mode (measured in this console)</h2>
+        ${hmode.map(([m, v]) => `<div class="hbar" title="${MODE[m] || m}: ${v} seconds"><span>${MODE[m] || esc(m)}</span><div class="t"><div class="f" style="width:${100 * v / hmax}%"></div></div><span class="v">${v}s</span></div>`).join("") || `<p class="hint">No sends yet.</p>`}
+        <div class="note-l">Demo handle times are short because the cases are scripted; the minutes saved use the ticket baseline below instead.</div></div></div>
+    <div class="panel"><h2>Agent minutes saved per day</h2>
+      ${days.length ? `<div class="cols">${days.map(d => `<div class="c" title="${d.day}: ${d.minutes} min · ${d.resolved} deflected · ${d.assisted} assisted · ${d.escalated} escalated"><small>${n(d.minutes)}</small><div style="height:${Math.max(2, 120 * d.minutes / dmax)}px"></div></div>`).join("")}</div>
+        <div class="xlab">${days.map(d => `<span>${new Date(d.day + "T00:00").toLocaleDateString(undefined, {day:"numeric", month:"short"})}</span>`).join("")}</div>` : `<p class="hint">No chats handled yet. Send a few drafts or run auto-reply.</p>`}</div>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px">
+      <div class="panel"><h2>At Nova's volume</h2>
+        <div class="kv"><div>In-scope chats a month</div><div><b>${n(a.projection.in_scope_chats_per_month)}</b> (${n(a.assumptions.contacts_per_month)} contacts × ${Math.round(a.baseline.scope_share * 100)}% in scope × ${Math.round(a.baseline.chat_share * 100)}% chat)</div>
+          <div>Deflected a month</div><div><b>${n(a.projection.deflected_per_month)}</b> at today's ${a.deflection_pct}% rate</div>
+          <div>Agent hours saved a month</div><div><b>${n(a.projection.agent_hours_saved_per_month)}</b> at ${n(a.minutes_per_chat)} min per chat</div></div>
+        <div class="note-l">A straight line from this console's mix of modes. The business case workbook has the full model with ranges.</div></div>
+      <div class="panel"><h2>Assumptions</h2><div class="form" style="grid-template-columns:1fr 1fr">
+        <label>Minutes saved per assisted chat<input class="s" type="number" min="0" step="0.1" id="an-saved" value="${a.assumptions.saved_chat_min}"></label>
+        <label>Contacts a month<input class="s" type="number" min="0" step="1000" id="an-contacts" value="${a.assumptions.contacts_per_month}"></label></div>
+        <div class="note-l">Chat handle time without the copilot: <b>${a.baseline.aht_chat_min} min</b>, from our ticket data (same as the business case).<br>
+          Minutes saved = deflected × ${a.baseline.aht_chat_min} + (assisted sends + escalated) × minutes saved per assisted chat. Shadow sends save nothing.</div>
+        <div class="bar" style="margin:10px 0 0"><button id="an-save">Save assumptions</button></div></div></div>`;
+  bindEdits();
+  $("#an-save").onclick = async () => {
+    try{ await api("POST", "/api/control/analytics", {saved_chat_min: Number($("#an-saved").value), contacts_per_month: Math.round(Number($("#an-contacts").value))});
+      toast("Assumptions saved."); renderAnalytics(); } catch(e){ toast(e.message); }
+  };
+}
+
+buildNav();
+
 loadQueue();
+if(document.body.classList.contains("dev")) go(screen);
 </script>
 </body>
 </html>

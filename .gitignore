@@ -4,3 +4,4 @@ __pycache__/
 *.pyc
 app/logs/
 .pytest_cache/
+.superpowers/

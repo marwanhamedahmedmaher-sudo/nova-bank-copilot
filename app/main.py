@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 
 Mode = Literal["shadow", "copilot", "auto"]
 
-from . import copilot, dev, guards, store
+from . import control, copilot, dev, guards, store
 
 app = FastAPI(title="Nova Bank Copilot")
 STATIC = Path(__file__).resolve().parent / "static"
@@ -458,3 +458,243 @@ def policy(policy_id: str):
     if not p:
         raise HTTPException(404, "unknown policy")
     return p
+
+
+# ---- control room (dev mode): guardrails, golden set, evals, models, analytics -------------------
+class GuardrailBody(BaseModel):
+    enabled: bool | None = None
+    severity: Literal["block", "warn"] | None = None
+
+
+class CustomGuardrailBody(BaseModel):
+    id: str | None = None
+    name: str
+    phrases: list[str]
+    target: Literal["reply", "message"] = "reply"
+    severity: Literal["block", "warn"] = "block"
+    enabled: bool = True
+
+
+class GoldenBody(BaseModel):
+    id: str | None = None
+    type: str
+    intent: str
+    customer_id: str
+    language: str
+    question: str
+    benchmark_answer: str
+    benchmark_location: str = ""
+    expect_answer_found: bool = True
+    must_flag: list[str] = []
+    must_suggest: list[str] = []
+
+
+class ModelBody(BaseModel):
+    id: str
+    label: str = ""
+    prices: list[float]
+    enabled: bool = True
+
+
+class ModelRoleBody(BaseModel):
+    role: Literal["primary", "backup", "none"] | None = None
+    enabled: bool | None = None
+
+
+class UploadBody(BaseModel):
+    filename: str
+    data_b64: str            # the file, base64 (keeps the console free of a multipart dependency)
+    by: str                  # who is uploading: logged with the date and time
+    name: str = ""           # golden sets: the batch name
+
+
+def _file(body):
+    try:
+        data = base64.b64decode(body.data_b64, validate=True)
+    except ValueError:
+        raise HTTPException(400, "the file didn't arrive intact; try again")
+    if len(data) > 5_000_000:
+        raise HTTPException(413, "keep uploads under 5 MB")
+    return data
+
+
+class RunBody(BaseModel):
+    ids: list[str] = []
+
+
+class OnBody(BaseModel):
+    on: bool
+
+
+class AssumptionsBody(BaseModel):
+    saved_chat_min: float
+    contacts_per_month: int
+
+
+def _guard(fn, *a, **k):
+    """Map the control room's errors to HTTP: unknown -> 404, locked -> 403, invalid -> 400, busy -> 409."""
+    try:
+        return fn(*a, **k)
+    except KeyError as e:
+        raise HTTPException(404, f"unknown: {e}")
+    except PermissionError as e:
+        raise HTTPException(403, str(e))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except RuntimeError as e:
+        raise HTTPException(409, str(e))
+
+
+@app.get("/api/control")
+def control_state():
+    s = control.state()
+    return {"guardrails": control.guardrails_view(dev.events()), "models": s["models"], "simulate_outage": s["simulate_outage"],
+            "model_chain": control.model_chain(), "golden_count": len(control.golden()), "active_set": control.active_set(),
+            "options": {"types": list(control.TYPES), "intents": list(control.INTENTS), "languages": list(control.LANGS),
+                        "flags": ["prompt_injection", "third_party_request", "approval_request", "complaint", "fraud_suspected", "card_or_fraud", "outside_policy"],
+                        "actions": list(guards.ACTION_RULES),
+                        "customers": [{"id": k, "name": v["name"]} for k, v in store.customers().items()]}}
+
+
+@app.post("/api/control/guardrails/custom")
+def control_custom(body: CustomGuardrailBody):
+    return _guard(control.upsert_custom, body.model_dump())
+
+
+@app.delete("/api/control/guardrails/custom/{rid}")
+def control_custom_delete(rid: str):
+    _guard(control.delete_custom, rid)
+    return {"ok": True}
+
+
+@app.post("/api/control/guardrails/{name}")
+def control_guardrail(name: str, body: GuardrailBody):
+    _guard(control.set_guardrail, name, body.enabled, body.severity)
+    return {"ok": True}
+
+
+@app.get("/api/control/golden")
+def control_golden(set: str | None = None):
+    sid = set or control.active_set()
+    return {"set": sid, "sets": control.golden_sets(), "cases": _guard(control.golden, sid)}
+
+
+@app.post("/api/control/golden")
+def control_golden_save(body: GoldenBody, set: str | None = None):
+    return _guard(control.upsert_golden, body.model_dump(), set)
+
+
+@app.delete("/api/control/golden/{cid}")
+def control_golden_delete(cid: str, set: str | None = None):
+    _guard(control.delete_golden, cid, set)
+    return {"ok": True}
+
+
+@app.post("/api/control/golden-sets/{sid}/active")
+def control_set_active(sid: str):
+    _guard(control.set_active, sid)
+    return {"ok": True}
+
+
+@app.delete("/api/control/golden-sets/{sid}")
+def control_set_delete(sid: str):
+    _guard(control.delete_set, sid)
+    return {"ok": True}
+
+
+XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+def _download(data, name):
+    return Response(data, media_type=XLSX, headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
+@app.get("/api/control/golden/download")
+def control_golden_download(set: str | None = None):
+    sid = set or control.active_set()
+    return _download(_guard(control.golden_xlsx, sid), f"golden-set-{sid}-{copilot.today()}.xlsx")
+
+
+@app.post("/api/control/golden/upload")
+def control_golden_upload(body: UploadBody):
+    return _guard(control.upload_golden, body.filename, _file(body), body.name, body.by)
+
+
+@app.get("/api/control/evals/download")
+def control_evals_download():
+    return _download(control.evals_xlsx(), f"eval-results-{control.active_set()}-{copilot.today()}.xlsx")
+
+
+@app.post("/api/control/evals/notes")
+def control_evals_notes(body: UploadBody):
+    return _guard(control.upload_eval_notes, body.filename, _file(body), body.by)
+
+
+@app.get("/api/control/evals")
+def control_evals():
+    return control.evals_view()
+
+
+@app.post("/api/control/evals/run")
+def control_evals_run(body: RunBody):
+    return {"ids": _guard(control.run_evals, body.ids)}
+
+
+@app.post("/api/control/models")
+def control_model(body: ModelBody):
+    return _guard(control.upsert_model, body.model_dump())
+
+
+@app.post("/api/control/models/{mid}")
+def control_model_role(mid: str, body: ModelRoleBody):
+    _guard(control.set_model, mid, body.role, body.enabled)
+    return {"ok": True, "model_chain": control.model_chain()}
+
+
+@app.delete("/api/control/models/{mid}")
+def control_model_delete(mid: str):
+    _guard(control.delete_model, mid)
+    return {"ok": True}
+
+
+@app.post("/api/control/outage")
+def control_outage(body: OnBody):
+    control.set_outage(body.on)
+    return {"ok": True}
+
+
+@app.get("/api/control/analytics")
+def control_analytics():
+    return dev.analytics(control.state()["analytics"])
+
+
+@app.get("/api/control/analytics/edits")
+def control_edits(band: str | None = None):
+    return dev.copilot_edit_rows(band=band)
+
+
+@app.get("/api/control/analytics/edits/download")
+def control_edits_download(band: str | None = None):
+    label = dict(dev.EDIT_BANDS).get(band, "All copilot sends")
+    rows = [[r["case_id"], r["at"][:16].replace("T", " "), r["changed_pct"], label if band else dict(dev.EDIT_BANDS)[r["band"]],
+             r["drafted_reply"], r["final_reply"], r["sources_opened"], r["handle_s"]] for r in dev.copilot_edit_rows(band=band)]
+    data = control._xlsx("Copilot edits", ["Case", "Sent at (UTC)", "% changed", "Edit size", "Copilot draft (masked)",
+                                            "Sent by the agent (masked)", "Sources opened", "Handle time (s)"],
+                         rows, [11, 17, 10, 22, 60, 60, 10, 12])
+    return _download(data, f"copilot-edits-{band or 'all'}-{copilot.today()}.xlsx")
+
+
+@app.post("/api/control/analytics")
+def control_analytics_set(body: AssumptionsBody):
+    if body.saved_chat_min < 0 or body.contacts_per_month < 0:
+        raise HTTPException(400, "assumptions can't be negative")
+    s = control.state()
+    s["analytics"] = body.model_dump()
+    control.save(s, "analytics_assumptions", **body.model_dump())
+    return dev.analytics(s["analytics"])
+
+
+@app.post("/api/control/reset")
+def control_reset():
+    control.reset()
+    return {"ok": True}

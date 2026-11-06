@@ -12,10 +12,11 @@ from pathlib import Path
 from typing import List, Literal
 
 import anthropic
+import httpx2  # the HTTP client the anthropic SDK itself uses (no extra dependency)
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
-from . import guards, store
+from . import control, guards, store
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
@@ -116,7 +117,7 @@ Reply style:
 - Always reply in a formal register. For ar, arz and franco, write suggested_reply in formal Modern Standard Arabic in Arabic script, never in Egyptian dialect or Latin letters. For en, write formal, professional English: no slang, no contractions.
 - You never know the customer's gender. In Arabic, use no gendered address (no عزيزي or عزيزتي) and address the customer in the respectful plural (حضرتكم، لكم، حسابكم), which fits anyone; write {{FIRST_NAME}} without a title.
 - 2 to 5 short sentences, courteous and plain, no internal jargon (say "the merchant's bank", not "acquirer"). Address the customer as {{FIRST_NAME}}.
-- Cards are referred to by their last 4 digits only.
+- Cards are referred to by their last 4 digits only. A card number the customer typed reaches you masked as [CARD_NUMBER ending NNNN]; if they ask whether it is their card, compare those 4 digits with the card in PROFILE and say plainly whether they match.
 
 === NOVA BANK POLICIES ===
 """
@@ -144,25 +145,48 @@ def _case_message(case, scope, flags, message):
 
 
 def _cost(model, usage):
-    p_in, p_out, p_cw, p_cr = PRICES.get(model, PRICES["claude-opus-5-5"])
+    p_in, p_out, p_cw, p_cr = PRICES.get(model) or control.price(model)
     return (usage.input_tokens * p_in + usage.output_tokens * p_out +
             (usage.cache_creation_input_tokens or 0) * p_cw + (usage.cache_read_input_tokens or 0) * p_cr) / 1e6
 
 
+FALLBACK_ERRORS = (anthropic.APIConnectionError, anthropic.APIStatusError, RuntimeError)
+
+
 def _call_model(messages):
-    resp = client().messages.parse(
-        model=MODEL,
-        max_tokens=16000,
-        system=_system_blocks(),
-        messages=messages,
-        output_config={"effort": EFFORT},
-        output_format=Draft,
-        extra_headers={"anthropic-beta": "server-side-fallback-2026-07-01"},
-        extra_body={"fallbacks": "default"},
-    )
-    if resp.stop_reason == "refusal":
-        raise RuntimeError("model declined the request")
-    return resp
+    """Try the primary model, then the backup (control room, Dev > Models). Returns (resp, model_used, fell_back_from)."""
+    chain = control.model_chain()
+    if not chain:
+        raise RuntimeError("no model is enabled in the control room")
+    errors = []
+    for i, model in enumerate(chain):
+        try:
+            if i == 0 and control.outage():
+                raise anthropic.APIConnectionError(message="primary model outage (simulated in the control room)",
+                                                   request=httpx2.Request("POST", "https://api.anthropic.com/v1/messages"))
+            resp = client().messages.parse(
+                model=model,
+                max_tokens=16000,
+                system=_system_blocks(),
+                messages=messages,
+                output_config={"effort": EFFORT},
+                output_format=Draft,
+            )
+            if resp.stop_reason == "refusal":
+                raise RuntimeError("model declined the request")
+            if i:
+                audit("model_fallback", primary=chain[0], used=model, error=errors[-1])
+            return resp, model, (chain[0] if i else None)
+        except FALLBACK_ERRORS as e:
+            errors.append(f"{model}: {e}")
+            if i == len(chain) - 1:
+                raise
+
+
+def _checks(draft, scope, masked):
+    """Built-in checks plus the control room's custom guardrails, with its on/off and block/warn applied."""
+    return control.apply_checks(guards.check_draft(draft, scope, masked),
+                                [draft.suggested_reply, draft.reply_in_english], masked)
 
 
 def _commitment_check(draft):
@@ -237,14 +261,14 @@ def suggest_for(customer_id, raw_message, case_id="EVAL", channel="chat", agent_
     case = {"case_id": case_id, "channel": channel}
     scope = store.CustomerScope(customer_id, today=today())  # bound from the verified case, never from the message
     masked = guards.mask_pii(raw_message)
-    flags = guards.input_flags(masked, scope)
+    flags = control.input_flags(guards.input_flags(masked, scope))
 
     started = time.time()
     messages = [{"role": "user", "content": _case_message(case, scope, flags, masked)}]
-    resp = _call_model(messages)
+    resp, model, fell_back = _call_model(messages)
     draft = resp.parsed_output
-    checks = guards.check_draft(draft, scope, masked)
-    calls = [(MODEL, resp.usage)]
+    checks = _checks(draft, scope, masked)
+    calls = [(model, resp.usage)]
 
     retried = False
     if guards.blocked(checks):
@@ -253,19 +277,24 @@ def suggest_for(customer_id, raw_message, case_id="EVAL", channel="chat", agent_
         failed = "\n".join(f"- {c['name']}: {c['detail']}" for c in guards.blocked(checks))
         messages += [{"role": "assistant", "content": resp.content[-1].text if resp.content else ""},
                      {"role": "user", "content": f"Your draft failed these checks. Fix them and return a corrected draft:\n{failed}"}]
-        resp = _call_model(messages)
+        resp, model, fell_back = _call_model(messages)
         draft = resp.parsed_output
-        checks = guards.check_draft(draft, scope, masked)
-        calls.append((MODEL, resp.usage))
+        checks = _checks(draft, scope, masked)
+        calls.append((model, resp.usage))
 
-    commit, commit_resp = _commitment_check(draft)
-    calls.append((GUARD_MODEL, commit_resp.usage))
-    checks.append(dict(name="No promise of an outcome (second model)", passed=not commit.commits, severity="block",
-                       detail=f"promises: \"{commit.phrase}\"" if commit.commits else "no outcome promised"))
+    late = []
+    if control.commitment_check_on():  # switched off in the control room: skip the second model call entirely
+        commit, commit_resp = _commitment_check(draft)
+        calls.append((GUARD_MODEL, commit_resp.usage))
+        late.append(dict(name="No promise of an outcome (second model)", passed=not commit.commits, severity="block",
+                         detail=f"promises: \"{commit.phrase}\"" if commit.commits else "no outcome promised"))
+    else:
+        late.append(dict(name="No promise of an outcome (second model)", passed=True, severity="block", detail="not run"))
     corrected = guards.set_approvers(draft)
-    checks.append(dict(name="Actions wait for a human", passed=True, severity="block",
-                       detail=(", ".join(f"{a.action} -> {a.approver}" for a in draft.suggested_actions) or "no actions suggested") +
-                              (f" (approver set from Nova's policy table; {'; '.join(corrected)})" if corrected else "")))
+    late.append(dict(name="Actions wait for a human", passed=True, severity="block",
+                     detail=(", ".join(f"{a.action} -> {a.approver}" for a in draft.suggested_actions) or "no actions suggested") +
+                            (f" (approver set from Nova's policy table; {'; '.join(corrected)})" if corrected else "")))
+    checks += control.apply_checks(late)
 
     status = "blocked" if guards.blocked(checks) else "ready"
     first = scope.first_name
@@ -284,12 +313,13 @@ def suggest_for(customer_id, raw_message, case_id="EVAL", channel="chat", agent_
         "cost_usd": round(sum(_cost(m, u) for m, u in calls), 5),
         "tokens": {"input": sum(u.input_tokens for _, u in calls), "output": sum(u.output_tokens for _, u in calls),
                    "cache_read": sum(u.cache_read_input_tokens or 0 for _, u in calls)},
-        "model": MODEL,
+        "model": model,
+        "fell_back_from": fell_back,
     }
     result = with_risk(result)
     audit("suggestion", agent_id=agent_id, **{k: result[k] for k in ("case_id", "customer_id", "status", "input_flags",
                                                                        "masked_message", "draft", "checks", "latency_s",
-                                                                       "cost_usd", "tokens", "model", "risk")})
+                                                                       "cost_usd", "tokens", "model", "fell_back_from", "risk")})
     return result
 
 
