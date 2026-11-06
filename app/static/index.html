@@ -108,27 +108,57 @@ body:not(.dev) .devonly{display:none !important}
 .devpanel .kv{margin-top:6px}
 .shadowbox{border:1px dashed #b9c7da;background:#fbfcfe}
 .sent{background:var(--ok-bg);border:1px solid #bfe5cf;border-radius:10px;padding:12px 14px;font-size:15px;line-height:1.6}
+.tabs{display:flex;position:sticky;top:0;background:var(--panel);z-index:2;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;border:0;border-radius:0;background:transparent;padding:11px 8px;font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:600;border-bottom:2px solid transparent}
+.tabs button.on{color:var(--brand-2);border-bottom-color:var(--brand-2)}
+.tabs .n{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:999px;background:var(--chip);color:var(--brand);font-size:11px}
+.pager{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;font-size:12px;color:var(--muted)}
+.pager button{padding:4px 10px;font-size:12px}
+.pager button:disabled{opacity:.4;cursor:default}
+.listnote{padding:10px 14px;font-size:12.5px;color:var(--muted);border-bottom:1px solid var(--line)}
+.preview{font-size:12.5px;color:var(--ok);margin-top:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.preview.none{color:var(--muted)}
+.gear{background:rgba(255,255,255,.14);border:0;color:#fff;border-radius:999px;padding:4px 12px;font-size:13px}
+.settings{position:fixed;top:52px;right:18px;width:300px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(15,27,45,.18);padding:14px;z-index:10}
+.settings h4{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+.settings .group{margin-bottom:14px}
+.settings .modes{background:var(--chip);display:flex}
+.settings .modes button{color:var(--brand);flex:1;white-space:nowrap;padding:4px 8px}
+.settings .modes button.on{background:var(--brand-2);color:#fff}
+.settings .modehint{font-size:12px;color:var(--muted);margin-top:6px}
+.settings .devtoggle{font-size:13px}
+.vote{font-size:18px;padding:5px 12px}
+.vote.on{background:var(--chip);border-color:var(--brand-2)}
 .sent.rtl{direction:rtl;text-align:right;font-family:"IBM Plex Sans Arabic",Inter,sans-serif}
 </style>
 </head>
 <body>
 <header>
   <div class="logo">Nova Bank <span>· Agent Console</span></div>
-  <div class="modes" id="modes" role="tablist" aria-label="Copilot mode">
-    <button data-mode="shadow" title="The copilot drafts silently; the agent writes every reply">Shadow</button>
-    <button data-mode="copilot" title="Phase 1: the copilot suggests, the agent sends">Copilot</button>
-    <button data-mode="auto" title="Phase 2 preview: low risk is handled by the copilot; high risk waits for approval">Auto-reply</button>
-  </div>
   <div class="sp"></div>
-  <label class="devtoggle"><input type="checkbox" id="devtoggle"> Dev mode</label>
   <div class="pill" id="today-pill"></div>
   <div class="pill">Agent: Sara (agent-07)</div>
   <div class="pill" id="mode-pill"></div>
+  <button class="gear" id="gear" aria-haspopup="true" aria-expanded="false">⚙ Settings</button>
 </header>
+<div class="settings" id="settings" hidden>
+  <div class="group"><h4>Agent mode</h4>
+    <div class="modes" id="modes" role="tablist" aria-label="Copilot mode">
+      <button data-mode="shadow">Shadow</button><button data-mode="copilot">Copilot</button><button data-mode="auto">Auto-reply</button>
+    </div>
+    <div class="modehint" id="modehint"></div></div>
+  <div class="group"><h4>Developer</h4>
+    <label class="devtoggle"><input type="checkbox" id="devtoggle"> Dev mode: cost, guardrails, risk rule, dev panel</label></div>
+  <div class="group devonly" style="margin-bottom:0"><h4>Demo</h4>
+    <button id="reset">Reset demo: reopen every case</button></div>
+</div>
 <main>
-  <section class="col" id="queue-col"><h2>Open cases</h2>
+  <section class="col" id="queue-col">
+    <div class="tabs" role="tablist"><button data-tab="open">Open<span class="n" id="n-open">0</span></button>
+      <button data-tab="closed">Closed<span class="n" id="n-closed">0</span></button></div>
     <div class="devpanel devonly" id="devpanel"></div>
     <div id="queue"></div>
+    <div class="pager" id="pager" hidden><button id="prev">‹ Prev</button><span id="pageinfo"></span><button id="next">Next ›</button></div>
   </section>
 
   <section class="col center">
@@ -166,6 +196,14 @@ let openedAt = 0, sourcesOpened = 0;
 const auto = {};     // case_id -> /auto response, or {pending:true}
 const shadow = {};   // case_id -> promise of the hidden draft
 const risks = {};    // case_id -> risk label seen in this session (any mode)
+const drafts = {};   // case_id -> copilot draft the agent asked for (copilot mode)
+let closed = {};     // case_id -> closed info for the current mode (from the audit log)
+let tab = "open", page = 0;
+const PAGE = 5;
+const MODE_HINT = {shadow:"The copilot drafts silently; the agent writes every reply.",
+  copilot:"Phase 1: the agent clicks Ask copilot for a draft, edits, and sends.",
+  auto:"Phase 2 preview: the copilot closes low-risk cases; you approve the rest."};
+const BY = {agent:"Sent by you", approved:"Approved by you", copilot:"Closed by copilot"};
 
 function toast(msg){ const t=$("#toast"); t.textContent=msg; t.style.display="block"; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display="none",3600); }
 const rtl = lang => lang==="ar"||lang==="arz";
@@ -181,14 +219,33 @@ const riskBadge = r => r ? `<span class="risk ${r.level}" title="${esc(r.reason 
 const handleSeconds = () => Math.round((Date.now() - openedAt) / 100) / 10;
 
 // ---- header: mode switcher, dev mode, today -------------------------------------------------
-function setMode(m){
-  mode = m; store.set("nova.mode", m);
+async function setMode(m){
+  mode = m; store.set("nova.mode", m); page = 0;
   document.querySelectorAll("#modes button").forEach(b => b.classList.toggle("on", b.dataset.mode === m));
   $("#mode-pill").textContent = MODE_PILL[m];
-  renderQueue();
+  $("#modehint").textContent = MODE_HINT[m];
+  await refreshClosed();
   if(m === "auto") runAuto();
   if(current) openCase(current);
 }
+async function refreshClosed(){
+  try{ closed = Object.fromEntries((await (await fetch(`/api/closed?mode=${mode}`)).json()).map(c => [c.case_id, c])); } catch {}
+  renderQueue();
+}
+$("#gear").onclick = e => { e.stopPropagation(); const s = $("#settings"); s.hidden = !s.hidden; $("#gear").setAttribute("aria-expanded", !s.hidden); };
+document.addEventListener("click", e => { if(!$("#settings").hidden && !$("#settings").contains(e.target) && e.target !== $("#gear")) $("#settings").hidden = true; });
+document.addEventListener("keydown", e => { if(e.key === "Escape") $("#settings").hidden = true; });
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { tab = b.dataset.tab; page = 0; renderQueue(); });
+$("#prev").onclick = () => { page--; renderQueue(); };
+$("#next").onclick = () => { page++; renderQueue(); };
+$("#reset").onclick = async () => {
+  if(!confirm("Reopen every case in all three modes? The audit log keeps the history.")) return;
+  await post("/api/demo/reset");
+  for(const o of [auto, shadow, risks, drafts]) Object.keys(o).forEach(k => delete o[k]);
+  current = null; $("#convo").innerHTML = `<div class="empty">Pick a case from the queue.</div>`; $("#draft").innerHTML = "";
+  $("#settings").hidden = true; toast("Demo reset: every case is open again.");
+  setMode(mode); refreshDev();
+};
 document.querySelectorAll("#modes button").forEach(b => b.onclick = () => setMode(b.dataset.mode));
 $("#devtoggle").checked = store.get("nova.dev") === "1";
 document.body.classList.toggle("dev", $("#devtoggle").checked);
@@ -209,6 +266,7 @@ async function refreshDev(){
       <div>Draft changed</div><div>${s.edit_share_pct}% on average</div>
       <div>Blind sends</div><div>${s.blind_send_pct}% sent unedited, no source opened</div>
       <div>Sources opened</div><div>${s.source_opens}</div>
+      <div>Auto reviews</div><div>👍 ${s.auto_reviews.up} · 👎 ${s.auto_reviews.down}</div>
       <div>Auto-reply</div><div>${s.auto.resolved} resolved · ${s.auto.escalated} escalated · ${s.auto.awaiting_approval} awaiting · ${s.auto.needs_agent} to agent</div></div>`;
 }
 
@@ -219,19 +277,52 @@ async function loadQueue(){
   refreshDev();
 }
 
+// Open: shadow and copilot = every case still waiting for the agent; auto = only cases waiting for a human.
+const NEEDS_HUMAN = new Set(["awaiting_approval", "needs_agent"]);
+function openList(){
+  const open = cases.filter(c => !closed[c.case_id]);
+  if(mode !== "auto") return open;
+  return open.filter(c => NEEDS_HUMAN.has(auto[c.case_id]?.outcome))
+             .sort((a,b) => OUTCOME_ORDER[auto[a.case_id].outcome] - OUTCOME_ORDER[auto[b.case_id].outcome]);
+}
+const fmtTime = ts => new Date(ts).toLocaleString(undefined, {month:"short", day:"numeric", hour:"2-digit", minute:"2-digit"});
 function renderQueue(){
-  let list = [...cases];
-  if(mode === "auto") list.sort((a,b) => (OUTCOME_ORDER[auto[a.case_id]?.outcome] ?? 9) - (OUTCOME_ORDER[auto[b.case_id]?.outcome] ?? 9));
-  $("#queue").innerHTML = list.map(c => {
-    const a = auto[c.case_id];
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
+  const openCases = openList();
+  const closedCases = Object.values(closed).map(x => cases.find(c => c.case_id === x.case_id)).filter(Boolean);
+  $("#n-open").textContent = openCases.length; $("#n-closed").textContent = closedCases.length;
+  let list = tab === "open" ? openCases : closedCases, note = "";
+  if(tab === "open" && mode === "auto"){
+    const pending = cases.filter(c => auto[c.case_id]?.pending).length;
+    if(pending) note = `<div class="listnote"><span class="spinner" style="border-color:#c9d6e6;border-top-color:var(--brand-2)"></span> Copilot assessing ${pending} case${pending>1?"s":""}…</div>`;
+  }
+  const pages = Math.max(1, Math.ceil(list.length / PAGE));
+  $("#pager").hidden = tab !== "closed" || list.length <= PAGE;
+  if(tab === "closed"){
+    page = Math.min(page, pages - 1);
+    list = list.slice(page * PAGE, page * PAGE + PAGE);
+    $("#pageinfo").textContent = `Page ${page + 1} of ${pages}`;
+    $("#prev").disabled = page === 0; $("#next").disabled = page >= pages - 1;
+  }
+  const empty = tab === "open" ? (mode === "auto" ? "Nothing needs your approval." : "No open cases. Nice work.") : "No closed cases yet.";
+  $("#queue").innerHTML = note + (list.length ? "" : `<div class="empty" style="margin-top:30px">${empty}</div>`) + list.map(c => {
+    const a = auto[c.case_id], k = closed[c.case_id];
     let line = "";
-    if(mode === "auto") line = a?.pending ? riskBadge({level:"pending"}) : a ? `${riskBadge(a.risk)} <span class="hint">${OUTCOME_TEXT[a.outcome]}${
-      a.actions?.length ? " · " + a.actions.map(x => ACTION[x.action] + (x.approver === "agent" ? "" : " → " + TEAM[x.approver])).join(", ") : ""}</span>` : "";
-    else if(mode !== "shadow" && risks[c.case_id]) line = riskBadge(risks[c.case_id]);
+    if(k){
+      const rv = k.review ? (k.review.vote === "up" ? " · 👍" : " · 👎") : (k.by === "copilot" ? ` · <span style="color:var(--warn)">needs review</span>` : "");
+      line = `${a?.risk && mode === "auto" ? riskBadge(a.risk) : ""}<span class="hint">${BY[k.by]}${k.outcome ? " · " + k.outcome : ""} · ${fmtTime(k.at)}${rv}</span>`;
+    }
+    else if(mode === "auto" && a) line = `${riskBadge(a.risk)} <span class="hint">${OUTCOME_TEXT[a.outcome]}</span>`;
+    else if(mode === "copilot" && drafts[c.case_id]) line = `${riskBadge(drafts[c.case_id].risk)}<span class="tag" style="background:var(--ok-bg);color:var(--ok)">Draft ready</span>`;
+    const dr = drafts[c.case_id];
+    const preview = mode === "copilot" && !k ? (dr
+      ? `<div class="preview" ${dr.draft.customer_language !== "en" ? 'dir="rtl"' : ''}>↳ ${esc(dr.reply)}</div>`
+      : `<div class="preview none">No draft yet</div>`) : "";
     return `<div class="case ${c.case_id===current?"active":""}" data-id="${c.case_id}">
       <div class="top"><span>${esc(c.customer_name)}</span><span class="hint">${c.channel==="call"?"📞 Call":"💬 Chat"}</span></div>
       <div class="meta">${c.case_id} · ${esc(c.plan)} · <span class="tag">${LANG[c.language]}</span></div>
       <div class="msg" ${rtl(c.language)?'dir="rtl"':''}>${esc(c.message)}</div>
+      ${preview}
       ${line ? `<div class="outcome">${line}</div>` : ""}
     </div>`;}).join("");
   document.querySelectorAll(".case").forEach(el => el.onclick = () => openCase(el.dataset.id));
@@ -240,11 +331,11 @@ function renderQueue(){
 // Auto-reply: assess every case in parallel; each card updates as its answer comes back.
 function runAuto(){
   cases.forEach(c => {
-    if(auto[c.case_id]) return;
+    if(auto[c.case_id] || closed[c.case_id]) return;
     auto[c.case_id] = {pending:true};
     post(`/api/cases/${c.case_id}/auto`).then(r => { auto[c.case_id] = r; risks[c.case_id] = r.risk; })
       .catch(e => { delete auto[c.case_id]; toast(`${c.case_id}: ${e.message}`); })
-      .finally(() => { if(mode === "auto"){ renderQueue(); if(current === c.case_id) openCase(c.case_id); } refreshDev(); });
+      .finally(async () => { if(mode === "auto"){ await refreshClosed(); if(current === c.case_id) openCase(c.case_id); } refreshDev(); });
   });
   renderQueue();
 }
@@ -259,6 +350,7 @@ async function openCase(id){
   const bubble = `<div class="who">Customer · ${c.channel==="call"?"call, typed by the agent":"chat"} · ${LANG[c.language]}</div>
     <div class="bubble ${rtl(c.language)?"rtl":""}">${esc(c.message)}</div>`;
   renderCustomer([]);
+  if(closed[id]) return openClosed(id, bubble);
   if(mode === "shadow") return openShadow(id, bubble);
   if(mode === "auto") return openAuto(id, bubble);
   $("#convo").innerHTML = bubble + `
@@ -267,6 +359,47 @@ async function openCase(id){
       <span class="hint devonly">The copilot only sees this customer's records and Nova policies. Try to break it.</span></div>`;
   $("#ask").onclick = ask;
   $("#draft").innerHTML = "";
+  if(drafts[id]) renderDraft(drafts[id]);
+}
+
+// Closed: read-only record of what went out; in auto-reply the agent reviews what the copilot closed on its own.
+function openClosed(id, bubble){
+  const k = closed[id], a = auto[id];
+  $("#convo").innerHTML = bubble;
+  if(mode === "auto" && a?.result && k.by !== "agent") openAuto(id, bubble);
+  else {
+    const first = detail.customer.name.split(" ")[0], ar = detail.case.language !== "en";
+    const text = (k.reply || "").replaceAll("{{FIRST_NAME}}", first);
+    $("#draft").innerHTML = `<div class="row" style="margin-top:0"><span class="status ready">✓ ${BY[k.by]}</span>
+        ${k.outcome ? `<span class="tag">${k.outcome}</span>` : ""}<span class="hint">${fmtTime(k.at)}</span></div>
+      <div class="card"><h3>Reply sent to the customer</h3>${text ? `<div class="sent ${ar?"rtl":""}">${bidi(text, ar?"ar":"en")}</div>` : `<span class="hint">No reply text in the log.</span>`}</div>`;
+  }
+  if(k.by === "copilot") $("#draft").insertAdjacentHTML("afterbegin", reviewHtml(k));
+  bindReview(id);
+}
+function reviewHtml(k){
+  const v = k.review?.vote;
+  return `<div class="card" style="margin-top:0;margin-bottom:12px"><h3>Review the copilot · logged for the evals</h3>
+    <div class="row" style="margin-top:0"><button class="vote ${v==="up"?"on":""}" data-vote="up" aria-label="Good reply">👍</button>
+      <button class="vote ${v==="down"?"on":""}" data-vote="down" aria-label="Bad reply">👎</button>
+      <span class="hint">${v ? `You rated this ${v === "up" ? "good" : "wrong"}${k.review.note ? ": " + esc(k.review.note) : ""}. Click to change.` : "Was this the right reply and outcome?"}</span></div>
+    <div class="row" id="down-box" hidden><input class="note" id="down-note" placeholder="What was wrong?"><button id="down-submit">Submit</button></div></div>`;
+}
+function bindReview(id){
+  const send = async (vote, note = "") => {
+    try{ await post(`/api/cases/${id}/review`, {vote, note}); } catch(e){ toast(`Not logged: ${e.message}`); return; }
+    toast(vote === "up" ? "Logged 👍 for the evals." : "Logged 👎 with your note for the weekly review.");
+    await refreshClosed(); refreshDev(); if(current === id) openCase(id);
+  };
+  document.querySelectorAll("[data-vote]").forEach(b => b.onclick = () => {
+    if(b.dataset.vote === "up") return send("up");
+    $("#down-box").hidden = false; $("#down-note").focus();
+  });
+  $("#down-submit") && ($("#down-submit").onclick = () => {
+    const note = $("#down-note").value.trim();
+    if(!note){ $("#down-note").focus(); return; }
+    send("down", note);
+  });
 }
 
 function openShadow(id, bubble){
@@ -298,6 +431,7 @@ function openShadow(id, bubble){
     catch(e){ toast(`Not sent: ${e.message}`); return; }
     toast(drafted ? `Sent. Your reply differs from the copilot's hidden draft by ${r.changed_pct}%; both logged with your handle time.`
                   : "Sent and logged with your handle time (no copilot draft to compare).");
+    await refreshClosed(); openCase(id);
     refreshDev();
   };
 }
@@ -348,7 +482,7 @@ async function ask(){
   $("#draft").innerHTML = `<div class="empty">Reading policies and this customer's records…</div>`;
   try{
     const data = await post(`/api/cases/${current}/suggest`, {message:$("#msg").value});
-    risks[current] = data.risk; renderQueue();
+    risks[current] = data.risk; drafts[current] = data; renderQueue();
     renderDraft(data);
   }catch(e){ $("#draft").innerHTML = `<div class="card"><span class="status blocked">Copilot unavailable</span><p>${esc(e.message)}</p><p class="hint">Answer the customer manually.</p></div>`; }
   btn.disabled = false; btn.textContent = "Ask copilot";
@@ -423,11 +557,12 @@ function renderDraft(d, opts = {}){
       const r = await post(`/api/cases/${current}/approve`, {final_reply: finalText(), handle_s: handleSeconds(), sources_opened: sourcesOpened});
       toast(`Approved and sent. ${r.actions.map(x => x.approver === "agent" ? `${ACTION[x.action]}: done` : `${ACTION[x.action]} → ${TEAM[x.approver]}`).join("; ") || "No actions."}`);
       auto[current] = {...auto[current], outcome: "approved", actions: r.actions};
-      renderQueue(); openCase(current);
+      await refreshClosed(); openCase(current);
     } else {
       const r = await post(`/api/cases/${current}/send`, {drafted_reply: d.reply, final_reply: finalText(), mode,
                                                          sources_opened: sourcesOpened, handle_s: handleSeconds()});
       toast(r.edited ? `Sent with ${r.changed_pct}% of the draft changed; both versions logged.` : "Sent as drafted and logged to the audit trail.");
+      await refreshClosed(); openCase(current);
     }
     }catch(e){
       btn.disabled = false;

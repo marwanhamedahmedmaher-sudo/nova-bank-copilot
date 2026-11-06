@@ -45,4 +45,38 @@ def summary(evs=None):
         "edit_share_pct": avg([e for e in assisted if "changed_pct" in e], "changed_pct"),
         "auto": {k: outcomes.get(k, 0) for k in ("resolved", "escalated", "awaiting_approval", "needs_agent")},
         "source_opens": sum(e["event"] == "source_opened" for e in evs),
+        "auto_reviews": {v: sum(1 for r in reviews(evs).values() if r["vote"] == v) for v in ("up", "down")},
     }
+
+
+def _since_reset(evs):
+    """The demo can be reset; only events after the last reset decide what is closed. The log itself stays append-only."""
+    last = max((i for i, e in enumerate(evs) if e["event"] == "demo_reset"), default=-1)
+    return evs[last + 1:]
+
+
+def reviews(evs=None):
+    """Latest thumbs up/down per auto-closed case (the agent can change their mind)."""
+    evs = events() if evs is None else evs
+    return {e["case_id"]: {"vote": e["vote"], "note": e.get("note", "")} for e in _since_reset(evs) if e["event"] == "auto_review"}
+
+
+def closed(evs=None):
+    """{mode: {case_id: {by, at, reply, outcome?, review?}}}: what each mode's Closed tab shows."""
+    evs = _since_reset(events() if evs is None else evs)
+    out = {"shadow": {}, "copilot": {}, "auto": {}}
+    replies = {}
+    for e in evs:
+        cid = e.get("case_id")
+        if e["event"] == "agent_send":
+            m = e.get("mode", "copilot")
+            out.setdefault(m, {})[cid] = {"by": "approved" if e.get("approved") else "agent", "at": e["ts"],
+                                          "reply": e.get("final_reply", "")}
+        elif e["event"] == "auto_send":
+            replies[cid] = e.get("reply", "")
+        elif e["event"] == "auto_outcome" and e["outcome"] in ("resolved", "escalated"):
+            out["auto"][cid] = {"by": "copilot", "at": e["ts"], "reply": replies.get(cid, ""), "outcome": e["outcome"]}
+    for cid, r in reviews(evs).items():
+        if cid in out["auto"]:
+            out["auto"][cid]["review"] = r
+    return out
