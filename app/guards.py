@@ -31,6 +31,28 @@ PII_PATTERNS = [
 ]
 
 
+# Who must approve each action before it happens (POL-04 §5, POL-11 §2, POL-07 §1, POL-20 §3)
+ACTION_RULES = {
+    "block_card": ("agent", "done", "Card blocked by agent."),
+    "order_replacement_card": ("agent", "done", "Replacement ordered by agent; fee per POL-03 §2."),
+    "open_dispute": ("disputes_team", "submitted", "Dispute submitted; only the Disputes team decides."),
+    "request_fee_waiver": ("team_leader", "pending_approval", "Waiver request sent to Team Leader."),
+    "log_complaint": ("agent", "logged", "Complaint logged with a C- reference."),
+    "escalate_to_supervisor": ("team_leader", "pending_approval", "Escalated to supervisor."),
+}
+
+
+def set_approvers(draft):
+    """The approver comes from the table above, never from the model. Returns the labels the model got wrong."""
+    corrected = []
+    for a in draft.suggested_actions:
+        approver = ACTION_RULES[a.action][0]
+        if a.approver != approver:
+            corrected.append(f"{a.action}: model said {a.approver}, policy says {approver}")
+            a.approver = approver
+    return corrected
+
+
 def mask_pii(text):
     for pattern, token in PII_PATTERNS:
         text = pattern.sub(token, text)

@@ -73,7 +73,7 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:now
 <div class="wrap">
 
 <header style="display:grid;gap:14px">
-  <div class="eyebrow">AI PM Builders · Demo Day · 31 Oct 2026</div>
+  <div class="eyebrow">AI PM Builders · Demo Day · 7 Nov 2026</div>
   <h1>Nova Bank support copilot</h1>
   <p class="lead">An assistant for Nova Bank's contact-center agents. It drafts answers to dispute, fee and card questions from Nova's own policies and the verified customer's own records. Every claim is cited and checked, and it never approves anything.</p>
   <div class="meta"><span>Live product: agent console</span><span>Model: Claude Opus 5.5, synthetic data only</span><span>Languages: English, formal Arabic, Egyptian Arabic, Franco-Arabic</span></div>
@@ -95,7 +95,7 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:now
   <div class="eyebrow">Live demo, in this order</div>
   <h2>Six cases, then the panel tries to break it</h2>
   <ol class="steps">
-    <li><div><b>Mariam asks where her money is, in Franco-Arabic</b><small>CASE-101. Reads dispute D-1001, says the EGP 1,200 provisional credit is already applied and gives the expected date from the record. Every claim carries a chip like <span class="cite">D-1001</span> or <span class="cite">POL-05 §4</span>.</small></div></li>
+    <li><div><b>Mariam asks where her money is, in Franco-Arabic</b><small>CASE-101. Reads dispute D-1001, says the EGP 1,200 provisional credit is already applied, and spots that the expected date on the record has passed, so it suggests escalating to a supervisor. Every claim carries a chip like <span class="cite">D-1001</span> or <span class="cite">POL-05 §4</span>.</small></div></li>
     <li><div><b>Omar is angry about EGP 225 in overdraft fees</b><small>CASE-102. Explains 3 × EGP 75 and the daily cap, then suggests a goodwill waiver labelled "Team Leader approves". The agent can't waive it alone.</small></div></li>
     <li><div><b>Karim demands a refund on a declined dispute, in Egyptian Arabic</b><small>CASE-106. Gives the decline reason from the record, refuses to refund, and offers the complaint route for a second review <span class="cite">POL-16 §3</span>.</small></div></li>
     <li><div><b>Nour lost her card, in formal Arabic</b><small>CASE-103. Block first, free replacement on Premium, EGP 100 for next-day delivery in Cairo.</small></div></li>
@@ -173,25 +173,28 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:now
   <h2>Scored the way the course scores it</h2>
   <p>41 golden cases across all three intents and all four languages: 24 with a known answer and location, 5 the sources don't cover, and 12 attacks (leaks, injection, approval demands, pasted card numbers, credit questions). Each draft is scored in the course's Golden Record and 3H formats; deterministic checks fill the honesty and safety columns, and a judge model fills the rest with a reason for every Yes or No.</p>
   <div class="grid">
-    <div class="stat"><b>0.93</b><span>Helpfulness</span></div>
-    <div class="stat"><b>1.00</b><span>Honesty</span></div>
-    <div class="stat"><b>0.99</b><span>Harmlessness</span></div>
-    <div class="stat"><b>0.97</b><span>Overall 3H score</span></div>
+    <div class="stat"><b>0.92</b><span>Helpfulness</span></div>
+    <div class="stat"><b>0.96</b><span>Honesty</span></div>
+    <div class="stat"><b>1.00</b><span>Harmlessness</span></div>
+    <div class="stat"><b>0.96</b><span>Overall 3H score</span></div>
   </div>
   <div class="grid">
-    <div class="stat"><b>37 / 41</b><span>cases passed</span></div>
+    <div class="stat"><b>34 / 41</b><span>cases passed</span></div>
     <div class="stat"><b>24 / 24</b><span>matched the benchmark answer</span></div>
-    <div class="stat"><b>23 / 24</b><span>cited the benchmark location</span></div>
-    <div class="stat"><b>14 s</b><span>average time per draft</span></div>
+    <div class="stat"><b>41 / 41</b><span>passed all five safety checks</span></div>
+    <div class="stat"><b>11 s</b><span>average time per draft</span></div>
   </div>
+  <p class="note">Headline numbers are run 4 (6 Nov), on the final code shown today.</p>
   <div class="box"><table>
     <thead><tr><th>Run</th><th class="num">Passed</th><th class="num">Helpful</th><th class="num">Honest</th><th class="num">Harmless</th><th class="num">Overall</th><th>What changed before this run</th></tr></thead>
     <tbody>
       <tr><td>1 · 30 Oct</td><td class="num">28 / 41</td><td class="num">0.92</td><td class="num">0.93</td><td class="num">0.98</td><td class="num">0.94</td><td>First version</td></tr>
       <tr><td>2 · 30 Oct</td><td class="num">35 / 41</td><td class="num">0.91</td><td class="num">0.98</td><td class="num">0.98</td><td class="num">0.96</td><td>No uncited extra sentences in replies; every refund request flagged; the promise check sees the verified facts</td></tr>
       <tr><td>3 · 31 Oct</td><td class="num">37 / 41</td><td class="num">0.93</td><td class="num">1.00</td><td class="num">0.99</td><td class="num">0.97</td><td>Replies offer actions instead of claiming they're done; new check blocks stray characters; "not covered" answers say so plainly</td></tr>
+      <tr><td>4 · 6 Nov</td><td class="num">34 / 41</td><td class="num">0.92</td><td class="num">0.96</td><td class="num">1.00</td><td class="num">0.96</td><td>No change to the prompt or rules: a re-run on the final code (date from the clock, approver from the policy table)</td></tr>
     </tbody>
   </table></div>
+  <p class="note">Runs 3 and 4 used the same prompt and rules, so the gap of 3 cases is run-to-run variation, mostly wording or an extra suggested action. In both runs all 41 cases passed the five safety checks: other customers' data, promised outcomes, human approval, hidden instructions and card numbers.</p>
   <div class="box"><table>
     <thead><tr><th>Brief's constraint</th><th>What enforces it</th><th>Tested by</th></tr></thead>
     <tbody>
@@ -202,7 +205,7 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:now
       <tr><td>Survive a compliance officer</td><td>Append-only audit log of masked input, sources, draft, checks and agent actions; the eval suite is the test evidence</td><td>Every case</td></tr>
     </tbody>
   </table></div>
-  <p class="note">Every fix came from reading the judge's reasons, not from editing the test. One benchmark was corrected: the copilot escalated a duplicate charge because the 5-business-day provisional credit (POL-06 §3) was overdue, and that was the right call. The 4 cases still failing are wording, not safety: two gender slips, one in Arabic and one in an agent summary (the model never sees the customer's name, so it can't know their gender), one linking word, and a "deliver tomorrow" answer that didn't say tomorrow is a weekend. No run leaked data or showed the agent a promised outcome. Spreadsheets: evals/results.</p>
+  <p class="note">Every fix came from reading the judge's reasons, not from editing the test. One benchmark was corrected: the copilot escalated a duplicate charge because the 5-business-day provisional credit (POL-06 §3) was overdue, and that was the right call. The 7 cases failing in run 4 are wording and judgement, not safety: three suggested an action nobody needed (an escalation or a complaint), three added a small detail the cited source doesn't state (such as calling a fee waiver "automatic"), and one card-delivery answer didn't say tomorrow is a weekend. No run leaked data or showed the agent a promised outcome. Spreadsheets: evals/results.</p>
 </section>
 
 <section>
@@ -222,7 +225,7 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:now
       <tr><td>Phase 2 in-app resolution (from month 7)</td><td class="num">30%</td><td>Assumption, conservative against published bank-assistant results</td></tr>
       <tr><td>Agent cost per contact today</td><td class="num">EGP 53</td><td>120 agents × EGP 20,000 fully loaded ÷ 45,000 contacts (assumed, per instructor)</td></tr>
       <tr><td>All-in copilot cost per assisted contact</td><td class="num">EGP 14</td><td>In-country hosting EGP 250k/month (assumed) + measured model cost</td></tr>
-      <tr><td>Model cost per draft</td><td class="num">$0.034</td><td>Measured across the final eval run, guard model included</td></tr>
+      <tr><td>Model cost per draft</td><td class="num">$0.034</td><td>Measured across the 31 Oct eval run, guard model included; the 6 Nov run measured $0.027</td></tr>
     </tbody>
   </table></div>
   <div class="two">

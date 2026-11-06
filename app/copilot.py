@@ -7,7 +7,7 @@ import os
 import sys
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import List, Literal
 
@@ -22,12 +22,17 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 MODEL = os.getenv("COPILOT_MODEL", "claude-opus-5-5")
 GUARD_MODEL = os.getenv("GUARD_MODEL", "claude-haiku-5-5")
 EFFORT = os.getenv("COPILOT_EFFORT", "low")
-TODAY = "2026-10-30"
+TODAY = os.getenv("COPILOT_TODAY")  # pin a date (the evals pin 2026-10-30); unset = the real date
 LOG = Path(__file__).resolve().parent / "logs" / "audit.jsonl"
 # USD per million tokens: input, output, cache write, cache read
 PRICES = {"claude-opus-5-5": (4.0, 20.0, 5.0, 0.20), "claude-haiku-5-5": (0.10, 0.50, 0.125, 0.01)}
 
 _client = None
+
+
+def today():
+    """Read on every call, so a console left running overnight still uses the right date."""
+    return TODAY or date.today().isoformat()
 
 
 def client():
@@ -117,7 +122,7 @@ def _case_message(case, scope, flags, message):
         "approval_request": "The customer is asking for an approval, refund or waiver.",
     }
     guard_notes = "\n".join(notes[f] for f in flags) or "none"
-    return (f"<case id=\"{case['case_id']}\" channel=\"{case['channel']}\" verified=\"true\" today=\"{TODAY}\">\n"
+    return (f"<case id=\"{case['case_id']}\" channel=\"{case['channel']}\" verified=\"true\" today=\"{today()}\">\n"
             f"<customer_records>\n{records}\n</customer_records>\n"
             f"<input_check_notes>\n{guard_notes}\n</input_check_notes>\n"
             f"<customer_message>\n{message}\n</customer_message>\n</case>")
@@ -233,8 +238,10 @@ def suggest_for(customer_id, raw_message, case_id="EVAL", channel="chat", agent_
     calls.append((GUARD_MODEL, commit_resp.usage))
     checks.append(dict(name="No promise of an outcome (second model)", passed=not commit.commits, severity="block",
                        detail=f"promises: \"{commit.phrase}\"" if commit.commits else "no outcome promised"))
+    corrected = guards.set_approvers(draft)
     checks.append(dict(name="Actions wait for a human", passed=True, severity="block",
-                       detail=", ".join(f"{a.action} -> {a.approver}" for a in draft.suggested_actions) or "no actions suggested"))
+                       detail=(", ".join(f"{a.action} -> {a.approver}" for a in draft.suggested_actions) or "no actions suggested") +
+                              (f" (approver set from Nova's policy table; {'; '.join(corrected)})" if corrected else "")))
 
     status = "blocked" if guards.blocked(checks) else "ready"
     first = scope.first_name

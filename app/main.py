@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import copilot, store
+from . import copilot, guards, store
 
 app = FastAPI(title="Nova Bank Copilot")
 STATIC = Path(__file__).resolve().parent / "static"
@@ -37,16 +37,6 @@ async def password_gate(request: Request, call_next):
 @app.get("/healthz")
 def healthz():
     return {"ok": True}
-
-# Who must approve each action before it happens (POL-04 §5, POL-11 §2, POL-07 §1, POL-20 §3)
-ACTION_RULES = {
-    "block_card": ("agent", "done", "Card blocked by agent."),
-    "order_replacement_card": ("agent", "done", "Replacement ordered by agent; fee per POL-03 §2."),
-    "open_dispute": ("disputes_team", "submitted", "Dispute submitted; only the Disputes team decides."),
-    "request_fee_waiver": ("team_leader", "pending_approval", "Waiver request sent to Team Leader."),
-    "log_complaint": ("agent", "logged", "Complaint logged with a C- reference."),
-    "escalate_to_supervisor": ("team_leader", "pending_approval", "Escalated to supervisor."),
-}
 
 
 class SuggestBody(BaseModel):
@@ -106,9 +96,9 @@ def suggest(case_id: str, body: SuggestBody):
 
 @app.post("/api/cases/{case_id}/action")
 def take_action(case_id: str, body: ActionBody):
-    if body.action not in ACTION_RULES:
+    if body.action not in guards.ACTION_RULES:
         raise HTTPException(400, "unknown action")
-    approver, status, note = ACTION_RULES[body.action]
+    approver, status, note = guards.ACTION_RULES[body.action]
     copilot.audit("agent_action", case_id=case_id, action=body.action, approver=approver, status=status, reason=body.reason)
     return {"action": body.action, "approver": approver, "status": status, "note": note}
 

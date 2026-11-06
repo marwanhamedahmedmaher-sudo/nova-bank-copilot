@@ -1,6 +1,6 @@
 # Nova Bank support copilot (AI PM Builders capstone)
 
-Marwan's capstone. Demo Day is **31 Oct 2026**: a live product shown to a panel. The group is small, so most of the work is built in Claude Code. The full brief is in `docs/brief.md`.
+Marwan's capstone. Demo Day is **7 Nov 2026** (moved from 31 Oct): a live product shown to a panel. The group is small, so most of the work is built in Claude Code. The full brief is in `docs/brief.md`.
 
 ## What we are building
 

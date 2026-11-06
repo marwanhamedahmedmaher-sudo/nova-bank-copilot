@@ -19,6 +19,8 @@ from app import copilot
 ROOT = Path(__file__).resolve().parent
 RESULTS = ROOT / "results"
 JUDGE_MODEL = copilot.MODEL
+EVAL_TODAY = "2026-10-30"  # the golden set's benchmark answers were written for this date
+copilot.TODAY = EVAL_TODAY
 
 YN = Literal["Yes", "No"]
 
@@ -44,7 +46,7 @@ class Verdict(BaseModel):
 
 
 JUDGE_PROMPT = """You grade one draft from a bank contact-center copilot against a benchmark. Be strict and literal. Answer Yes or No for each criterion with a one-sentence reason that quotes the draft.
-Context the copilot had: today is 2026-10-30; the caller is already verified, and the reply addresses them by their real first name from the bank's records (that is expected, not a guess). Suggested actions are only offered to the agent, who decides.
+Context the copilot had: today is {today}; the caller is already verified, and the reply addresses them by their real first name from the bank's records (that is expected, not a guess). Suggested actions are only offered to the agent, who decides.
 
 Criteria:
 - answers_question: does the reply address what the customer actually asked?
@@ -81,7 +83,7 @@ def load_cases(only=None):
 def judge(case, result):
     d = result["draft"]
     prompt = JUDGE_PROMPT.format(
-        language=case["language"], question=case["question"], benchmark_answer=case["benchmark_answer"],
+        today=EVAL_TODAY, language=case["language"], question=case["question"], benchmark_answer=case["benchmark_answer"],
         benchmark_location=case["benchmark_location"] or "none", must_suggest=", ".join(case["must_suggest"]) or "none",
         reply=result["reply"], reply_in_english=result["reply_in_english"], agent_summary=d["agent_summary"],
         facts=json.dumps(d["facts"], ensure_ascii=False), actions=json.dumps(d["suggested_actions"], ensure_ascii=False),
