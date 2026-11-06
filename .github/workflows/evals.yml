@@ -1,0 +1,66 @@
+# Runs the golden set on every pull request to main and fails if the copilot scores lower than evals/baseline.json.
+# Needs the ANTHROPIC_API_KEY repo secret. About $3 and 5 minutes per run.
+name: evals
+
+on:
+  pull_request:
+    branches: [main]
+
+# a new push to the same PR cancels the run in progress, so you only pay for the latest commit
+concurrency:
+  group: evals-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # the PR merge commit and its base, to see which files changed
+
+      # Skip the paid run when only docs, research or demo files changed. The job still reports success,
+      # so it can be a required check without blocking docs-only PRs.
+      - name: Check what changed
+        id: changes
+        run: |
+          git diff --name-only HEAD^1 HEAD
+          if git diff --name-only HEAD^1 HEAD | grep -qE '^(app/|data/|evals/|requirements\.txt$|\.github/workflows/evals\.yml$)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No prompt, guardrail, data or eval changes; skipping evals." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/setup-python@v5
+        if: steps.changes.outputs.run == 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        if: steps.changes.outputs.run == 'true'
+        run: pip install -r requirements.txt
+
+      - name: Run evals
+        if: steps.changes.outputs.run == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::ANTHROPIC_API_KEY secret is not set (Settings > Secrets and variables > Actions)"
+            exit 1
+          fi
+          python -m evals.run_evals
+
+      - name: Compare with baseline
+        if: steps.changes.outputs.run == 'true'
+        # the run just written is the newest file; the committed ones all carry the checkout time
+        run: python -m evals.compare "$(ls -t evals/results/run*.json | head -n 1)"
+
+      - name: Upload results
+        if: always() && steps.changes.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results
+          path: evals/results/
