@@ -134,6 +134,8 @@ def _case_message(case, scope, flags, message):
         "third_party_request": "The message asks about someone other than the verified customer.",
         "approval_request": "The customer is asking for an approval, refund or waiver.",
         "card_or_fraud": "The message mentions a lost or stolen card or possible fraud.",
+        "abusive_language": "The message contains abusive language. Stay calm and courteous; an agent will handle this customer.",
+        "off_topic": "The message asks for something unrelated to Nova Bank banking. Do not help with it; offer help with the customer's account instead.",
     }
     guard_notes = "\n".join(notes[f] for f in flags) or "none"
     return (f"<case id=\"{case['case_id']}\" channel=\"{case['channel']}\" verified=\"true\" today=\"{today()}\">\n"

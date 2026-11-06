@@ -130,6 +130,20 @@ body:not(.dev) .devonly{display:none !important}
 .vote{font-size:18px;padding:5px 12px}
 .vote.on{background:var(--chip);border-color:var(--brand-2)}
 .sent.rtl{direction:rtl;text-align:right;font-family:"IBM Plex Sans Arabic",Inter,sans-serif}
+/* live chat */
+.tag.live{background:#e7f6ee;color:var(--ok)}
+.case.live{background:#fbfefc}
+.case .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--bad);margin-left:6px;vertical-align:1px}
+.chathead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.chathead .sp{flex:1}
+.chatlog{display:flex;flex-direction:column;gap:4px;max-height:40vh;overflow-y:auto;padding:4px 2px}
+.chatlog .who{margin:8px 4px 2px}
+.chatlog .who.me{align-self:flex-end}
+.chatlog .bubble{white-space:pre-wrap}
+.bubble.me{align-self:flex-end;background:#e3eefc;border-radius:14px 14px 4px 14px}
+.bubble.bot{background:#e0f4f4}
+.composer{display:flex;gap:8px;align-items:flex-end;margin-top:12px}
+.composer textarea{margin-top:0;min-height:44px}
 /* control room (dev mode) */
 #devnav{display:none}
 body.dev #devnav{display:flex;flex-direction:column;position:fixed;top:48px;left:0;bottom:0;width:212px;background:var(--panel);border-right:1px solid var(--line);z-index:3;overflow:auto}
@@ -222,7 +236,7 @@ button.bandrow:hover{background:#f4f7fb} button.bandrow.on{background:#eaf2fd;bo
 </div>
 <main>
   <section class="col" id="queue-col">
-    <div class="tabs" role="tablist"><button data-tab="open">Open<span class="n" id="n-open">0</span></button>
+    <div class="tabs" role="tablist"><button data-tab="open">Open chats<span class="n" id="n-open">0</span></button>
       <button data-tab="closed">Closed<span class="n" id="n-closed">0</span></button></div>
     <div class="devpanel devonly" id="devpanel"></div>
     <div id="queue"></div>
@@ -249,7 +263,8 @@ const APPROVER = {agent:"Agent clicks", team_leader:"Team Leader approves", oper
   disputes_team:"Disputes team decides", credit_team:"Credit team decides"};
 const TEAM = {agent:"agent", team_leader:"Team Leader", operations_manager:"Operations Manager", disputes_team:"Disputes team", credit_team:"Credit team"};
 const FLAG = {prompt_injection:"Prompt injection", third_party_request:"Asks about someone else", approval_request:"Asks for approval",
-  complaint:"Complaint", fraud_suspected:"Fraud suspected", card_or_fraud:"Lost card or fraud", outside_policy:"Outside policy"};
+  complaint:"Complaint", fraud_suspected:"Fraud suspected", card_or_fraud:"Lost card or fraud", outside_policy:"Outside policy",
+  abusive_language:"Abusive language", off_topic:"Not about banking"};
 const RISK = {low_resolved:"Low · resolved", low_escalated:"Low · escalated", high:"High · needs approval", blocked:"Blocked", pending:"Assessing…"};
 const OUTCOME_TEXT = {resolved:"Resolved by copilot", escalated:"Escalated by copilot", awaiting_approval:"Needs your approval", needs_agent:"Needs an agent", approved:"Approved by you"};
 const OUTCOME_ORDER = {awaiting_approval:0, needs_agent:1, approved:2, escalated:3, resolved:4};
@@ -266,6 +281,8 @@ const shadow = {};   // case_id -> promise of the hidden draft
 const risks = {};    // case_id -> risk label seen in this session (any mode)
 const drafts = {};   // case_id -> copilot draft the agent asked for (copilot mode)
 let closed = {};     // case_id -> closed info for the current mode (from the audit log)
+const live = {summary: {}, seen: {}, key: null, logSeq: -1, chat: null, polling: false};  // live chats (polled)
+const isRtl = s => /[؀-ۿ]/.test(s || "");
 let tab = "open", page = 0, generation = 0;  // generation: bumped on demo reset so older answers are ignored
 const PAGE = 5;
 const MODE_HINT = {shadow:"The copilot drafts silently; the agent writes every reply.",
@@ -292,6 +309,8 @@ async function setMode(m){
   document.querySelectorAll("#modes button").forEach(b => b.classList.toggle("on", b.dataset.mode === m));
   $("#mode-pill").textContent = MODE_PILL[m];
   $("#modehint").textContent = MODE_HINT[m];
+  post("/api/chats/mode", {mode: m}).catch(() => {});  // live chats: the server decides auto-replies by this mode
+  live.key = null;
   await refreshClosed();
   if(mode !== m) return;  // switched again while loading
   if(m === "auto") runAuto();
@@ -317,7 +336,7 @@ $("#reset").onclick = async () => {
   if(!confirm("Reopen every case in all three modes? The audit log keeps the history.")) return;
   try{ await post("/api/demo/reset"); } catch(e){ toast(`Reset failed: ${e.message}`); return; }
   generation++;
-  for(const o of [auto, shadow, risks, drafts]) Object.keys(o).forEach(k => delete o[k]);
+  for(const o of [auto, shadow, risks, drafts, live.summary, live.seen]) Object.keys(o).forEach(k => delete o[k]);
   current = null; $("#convo").innerHTML = `<div class="empty">Pick a case from the queue.</div>`; $("#draft").innerHTML = "";
   $("#settings").hidden = true; toast("Demo reset: every case is open again.");
   setMode(mode); refreshDev();
@@ -360,10 +379,25 @@ async function loadQueue(){
 // Open: shadow and copilot = every case still waiting for the agent; auto = only cases waiting for a human.
 const NEEDS_HUMAN = new Set(["awaiting_approval", "needs_agent"]);
 function openList(){
-  const open = cases.filter(c => !closed[c.case_id]);
-  if(mode !== "auto") return open;
-  return open.filter(c => NEEDS_HUMAN.has(auto[c.case_id]?.outcome))
-             .sort((a,b) => OUTCOME_ORDER[auto[a.case_id].outcome] - OUTCOME_ORDER[auto[b.case_id].outcome]);
+  const liveCases = cases.filter(c => c.live);  // live chats are always open and always on top
+  const open = cases.filter(c => !c.live && !closed[c.case_id]);
+  if(mode !== "auto") return [...liveCases, ...open];
+  return [...liveCases, ...open.filter(c => NEEDS_HUMAN.has(auto[c.case_id]?.outcome))
+             .sort((a,b) => OUTCOME_ORDER[auto[a.case_id].outcome] - OUTCOME_ORDER[auto[b.case_id].outcome])];
+}
+function liveCard(c){
+  const s = live.summary[c.case_id], first = c.customer_name.split(" ")[0];
+  const unread = s?.last && s.last.role === "customer" && s.seq > (live.seen[c.case_id] || 0) && current !== c.case_id;
+  const who = s?.last ? (s.last.role === "customer" ? first : s.last.role === "copilot" ? "Copilot" : "You") : "";
+  const status = !s?.last ? `<span class="hint">Waiting for ${esc(first)} to write…</span>`
+    : s.drafting ? `<span class="hint"><span class="spinner" style="border-color:#c9d6e6;border-top-color:var(--brand-2)"></span> Copilot drafting…</span>`
+    : s.takeover && mode === "auto" ? `<span class="hint">You took over</span>` : "";
+  return `<div class="case live ${c.case_id===current?"active":""}" data-id="${c.case_id}">
+    <div class="top"><span>${esc(c.customer_name)}${unread ? `<span class="dot" title="New message"></span>` : ""}</span><span class="tag live">● Live chat</span></div>
+    <div class="meta">${c.case_id} · ${esc(c.plan)}</div>
+    ${s?.last ? `<div class="msg" ${isRtl(s.last.text)?'dir="rtl"':''}><b>${who}:</b> ${esc(s.last.text)}</div>` : ""}
+    ${status ? `<div class="outcome">${status}</div>` : ""}
+  </div>`;
 }
 const fmtTime = ts => new Date(ts).toLocaleString(undefined, {month:"short", day:"numeric", hour:"2-digit", minute:"2-digit"});
 function renderQueue(){
@@ -386,6 +420,7 @@ function renderQueue(){
   }
   const empty = tab === "open" ? (mode === "auto" ? "Nothing needs your approval." : "No open cases. Nice work.") : "No closed cases yet.";
   $("#queue").innerHTML = note + (list.length ? "" : `<div class="empty" style="margin-top:30px">${empty}</div>`) + list.map(c => {
+    if(c.live) return liveCard(c);
     const a = auto[c.case_id], k = closed[c.case_id];
     let line = "";
     if(k){
@@ -411,7 +446,7 @@ function renderQueue(){
 // Auto-reply: assess every case in parallel; each card updates as its answer comes back.
 function runAuto(){
   cases.forEach(c => {
-    if(auto[c.case_id] || closed[c.case_id]) return;
+    if(c.live || auto[c.case_id] || closed[c.case_id]) return;  // live chats are answered message by message on the server
     auto[c.case_id] = {pending:true};
     const gen = generation;
     post(`/api/cases/${c.case_id}/auto`).then(r => { if(gen !== generation) return; auto[c.case_id] = r; risks[c.case_id] = r.risk; })
@@ -428,6 +463,7 @@ async function openCase(id){
   document.querySelectorAll(".case").forEach(el => el.classList.toggle("active", el.dataset.id===id));
   detail = await (await fetch(`/api/cases/${id}`)).json();
   const c = detail.case;
+  if(c.live) return openLive(id);
   const bubble = `<div class="who">Customer · ${c.channel==="call"?"call, typed by the agent":"chat"} · ${LANG[c.language]}</div>
     <div class="bubble ${rtl(c.language)?"rtl":""}">${esc(c.message)}</div>`;
   renderCustomer([]);
@@ -615,7 +651,7 @@ function renderDraft(d, opts = {}){
   $("#draft").innerHTML = `
     <div class="row" style="margin-top:0">
       ${riskBadge(d.risk)}
-      <span class="status ${d.status}">${ready ? (opts.approve ? "Waiting for your approval" : "✓ Ready to send") : "✕ Blocked by guardrails"}</span>
+      <span class="status ${opts.needsAgent ? "blocked" : d.status}">${!ready ? "✕ Blocked by guardrails" : opts.needsAgent ? "✕ Needs an agent · the copilot held this reply" : opts.approve ? "Waiting for your approval" : "✓ Ready to send"}</span>
       <span class="tag">${dr.intent.replaceAll("_"," ")}</span>
       ${d.replayed ? `<span class="tag" style="background:var(--warn-bg);color:var(--warn)">Offline: replaying the last saved draft</span>` : ""}
       ${flags.length ? `<span class="flags">${flags.map(f=>`<span class="tag">⚠ ${FLAG[f]||f}</span>`).join("")}</span>` : ""}
@@ -655,7 +691,13 @@ function renderDraft(d, opts = {}){
   $("#send") && ($("#send").onclick = async () => {
     const btn = $("#send"); btn.disabled = true;  // one click, one send
     try{
-    if(opts.approve){
+    if(opts.live){
+      const id = current, body = {text: finalText(), drafted_reply: d.reply, sources_opened: sourcesOpened, handle_s: handleSeconds()};
+      const r = await post(`/api/chats/${id}/${opts.approve ? "approve" : "reply"}`, body);
+      toast(opts.approve ? `Approved and sent. ${r.actions.map(x => x.approver === "agent" ? `${ACTION[x.action]}: done` : `${ACTION[x.action]} → ${TEAM[x.approver]}`).join("; ") || "No actions."}`
+                         : r.edited ? `Sent with ${r.changed_pct}% of the draft changed.` : "Sent as drafted.");
+      await refreshLive(true);
+    } else if(opts.approve){
       const r = await post(`/api/cases/${current}/approve`, {final_reply: finalText(), handle_s: handleSeconds(), sources_opened: sourcesOpened});
       toast(`Approved and sent. ${r.actions.map(x => x.approver === "agent" ? `${ACTION[x.action]}: done` : `${ACTION[x.action]} → ${TEAM[x.approver]}`).join("; ") || "No actions."}`);
       auto[current] = {...auto[current], outcome: "approved", actions: r.actions};
@@ -669,7 +711,7 @@ function renderDraft(d, opts = {}){
     }catch(e){
       btn.disabled = false;
       toast(`Not sent: ${e.message}`);
-      if(opts.approve){ delete auto[current]; runAuto(); }  // the server lost its assessment (restart): assess again
+      if(opts.approve && !opts.live){ delete auto[current]; runAuto(); }  // the server lost its assessment (restart): assess again
     }
     refreshDev();
   });
@@ -701,6 +743,122 @@ async function showSource(src, quote){
     toast(`${src}: “${quote}”`);
   }
 }
+
+// ---- live chat ------------------------------------------------------------------------------------
+// The customer types on the customer screen (/customer, another laptop). The server drafts a reply to each
+// new message; in auto-reply it sends low-risk replies itself unless the agent takes over. The console polls.
+function openLive(id){
+  const first = detail.customer.name.split(" ")[0];
+  renderCustomer([]);
+  $("#convo").innerHTML = `<div class="chathead" id="chathead"></div>
+    <div class="chatlog" id="chatlog"></div>
+    <div class="composer"><textarea id="chat-own" placeholder="Write to ${esc(first)}…"></textarea><button class="primary" id="chat-send">Send</button></div>
+    <div class="hint" id="composer-hint" style="margin-top:4px"></div>`;
+  $("#draft").innerHTML = "";
+  live.key = null; live.logSeq = -1;
+  renderQueue();  // clears the unread dot on this chat
+  $("#chat-send").onclick = sendOwn;
+  $("#chat-own").addEventListener("keydown", e => { if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); sendOwn(); } });
+  refreshLive(true);
+}
+
+async function sendOwn(){
+  const id = current, box = $("#chat-own"), text = box.value.trim();
+  if(!text){ box.focus(); return; }
+  $("#chat-send").disabled = true;
+  try{
+    if(mode === "auto" && !live.chat?.takeover) await post(`/api/chats/${id}/takeover`, {on: true});  // typing in auto-reply takes over
+    const dr = live.chat?.draft?.result;
+    const drafted = mode !== "shadow" && dr && !live.chat.draft.sent ? dr.reply : "";
+    await post(`/api/chats/${id}/reply`, {text, drafted_reply: drafted, sources_opened: sourcesOpened, handle_s: handleSeconds()});
+    box.value = "";
+  }catch(e){ toast(`Not sent: ${e.message}`); }
+  const b = $("#chat-send"); if(b) b.disabled = false;
+  await refreshLive(true);
+}
+
+const liveWho = (m, first) => m.role === "customer" ? first : m.role === "copilot" ? "Copilot · sent automatically" : m.approved ? "You · approved" : "You";
+async function refreshLive(force){
+  const id = current;
+  if(!id || !detail?.case?.live) return;
+  let chat;
+  try{ chat = await (await fetch(`/api/chats/${id}`)).json(); } catch { return; }
+  if(current !== id || !$("#chatlog")) return;
+  live.chat = chat; live.seen[id] = chat.seq;
+  const first = detail.customer.name.split(" ")[0], dr = chat.draft, takeover = chat.takeover;
+  const modeLine = mode === "shadow" ? "Shadow: you write every reply; the copilot drafts silently."
+    : mode === "copilot" ? "Copilot: a fresh draft for each message; you edit and send."
+    : takeover ? "You took over: the copilot drafts, you send." : "Auto-reply: the copilot answers by itself; high risk waits for you.";
+  $("#chathead").innerHTML = `<span class="tag live">● Live chat</span><b>${esc(detail.customer.name)}</b><span class="hint">${modeLine}</span><span class="sp"></span>
+    ${mode === "auto" ? `<button id="takeover">${takeover ? "Hand back to copilot" : "Take over"}</button>` : ""}`;
+  $("#takeover") && ($("#takeover").onclick = async () => { await post(`/api/chats/${id}/takeover`, {on: !takeover}); refreshLive(true); });
+  $("#composer-hint").textContent = mode === "auto" && !takeover ? "Sending a message yourself takes over from the copilot." : "";
+  if(chat.seq !== live.logSeq){
+    live.logSeq = chat.seq;
+    const log = $("#chatlog");
+    log.innerHTML = chat.messages.map((m, i) => {
+      const me = m.role !== "customer", prev = chat.messages[i - 1];
+      const head = !prev || liveWho(prev, first) !== liveWho(m, first) ? `<div class="who ${me ? "me" : ""}">${esc(liveWho(m, first))}</div>` : "";
+      return head + `<div class="bubble ${me ? "me" : ""} ${m.role === "copilot" ? "bot" : ""} ${isRtl(m.text) ? "rtl" : ""}">${esc(m.text)}</div>`;
+    }).join("") || `<div class="empty" style="margin-top:20px">Waiting for ${esc(first)} to write on the customer screen…</div>`;
+    log.scrollTop = log.scrollHeight;
+  }
+  // the draft panel is re-drawn only when its state changes, so the agent's edits are never wiped by the poll
+  const key = [mode, takeover, dr ? `${dr.for}:${dr.pending}:${dr.sent}:${!!dr.error}` : "none", chat.messages.length > 0].join("|");
+  if(!force && key === live.key) return;
+  live.key = key;
+  const agentDriven = mode !== "auto" || takeover;
+  if(!dr){
+    $("#draft").innerHTML = chat.messages.length ? `<div class="empty" style="margin-top:30px">Waiting for ${esc(first)}'s next message.</div>` : "";
+    renderCustomer([]);
+  } else if(dr.pending){
+    $("#draft").innerHTML = mode === "shadow" ? `<div class="card shadowbox devonly"><h3>Shadow draft · the agent can't see this</h3><span class="hint">Drafting…</span></div>`
+      : `<div class="empty" style="margin-top:30px"><span class="spinner" style="border-color:#c9d6e6;border-top-color:var(--brand-2)"></span> Copilot is reading ${esc(first)}'s message, the policies and her records…</div>`;
+  } else if(dr.error){
+    $("#draft").innerHTML = `<div class="card"><span class="status blocked">Copilot unavailable</span><p>${esc(dr.error)}</p><p class="hint">Reply to ${esc(first)} yourself in the box above.</p></div>`;
+  } else if(mode === "shadow"){
+    const d = dr.result, lang = d.draft.customer_language === "en" ? "en" : "ar";
+    $("#draft").innerHTML = `<div class="card shadowbox devonly"><h3>Shadow draft · the agent can't see this</h3>
+      <div class="row" style="margin-top:0">${riskBadge(d.risk)}<span class="tag">${d.draft.intent.replaceAll("_"," ")}</span></div>
+      <div class="reply ${rtl(lang)?"rtl":""}" style="margin-top:8px">${bidi(d.reply, lang)}</div><div class="en">EN: ${esc(d.reply_in_english)}</div></div>`;
+  } else if(dr.sent){
+    const d = dr.result, lang = d.draft.customer_language === "en" ? "en" : "ar";
+    $("#draft").innerHTML = `<div class="row" style="margin-top:0">${riskBadge(d.risk)}<span class="status ready">✓ Copilot replied automatically</span>
+        <span class="tag">${d.draft.intent.replaceAll("_"," ")}</span></div>
+      <div class="reason devonly">Risk rule: ${esc(d.risk.reason)}</div>
+      <div class="card"><h3>Reply the copilot sent</h3><div class="sent ${rtl(lang)?"rtl":""}">${bidi(d.reply, lang)}</div><div class="en">EN: ${esc(d.reply_in_english)}</div></div>
+      ${dr.actions.length ? `<div class="card"><h3>Handed over · a human team decides</h3>${dr.actions.map(x => `
+        <div class="action"><div><b>${ACTION[x.action]}</b></div><span class="approver">${APPROVER[x.approver]}</span></div>`).join("")}</div>` : ""}
+      <div class="card"><h3>Claims and sources</h3>${factsHtml(d.draft)}</div>`;
+    renderCustomer(citedIds(d.draft)); bindCites();
+  } else {
+    // copilot mode, taken over, or auto-reply holding a high-risk or blocked draft for a human
+    const level = dr.result.risk.level;
+    renderDraft(dr.result, {live: true, approve: !agentDriven && level === "high", needsAgent: !agentDriven && level === "blocked"});
+  }
+}
+
+async function pollChats(){
+  if(live.polling) return;
+  live.polling = true;
+  try{
+    const rows = await (await fetch("/api/chats")).json();
+    let changed = false;
+    for(const s of rows){
+      const old = live.summary[s.case_id];
+      if(!old || old.seq !== s.seq || old.drafting !== s.drafting || old.takeover !== s.takeover) changed = true;
+      if(old && s.seq > old.seq && s.last?.role === "customer" && current !== s.case_id){
+        const c = cases.find(x => x.case_id === s.case_id);
+        toast(`New message from ${c ? c.customer_name.split(" ")[0] : s.case_id}`);
+      }
+      live.summary[s.case_id] = s;
+    }
+    if(changed) renderQueue();
+    if(current && detail?.case?.live) await refreshLive(false);
+  }catch{}
+  live.polling = false;
+}
+setInterval(pollChats, 1500);
 
 async function act(action, reason, amount){
   const r = await post(`/api/cases/${current}/action`, {action, reason, amount_egp: amount ? Number(amount) : null});

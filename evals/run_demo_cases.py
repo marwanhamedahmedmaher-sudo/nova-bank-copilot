@@ -17,7 +17,7 @@ def run(case_id):
 
 if __name__ == "__main__":
     with ThreadPoolExecutor(max_workers=9) as pool:
-        results = list(pool.map(run, store.cases()))
+        results = list(pool.map(run, [c for c, v in store.cases().items() if not v.get("live")]))  # live chats have no fixed message
     for case_id, r, err in results:
         if err:
             print(f"{case_id}: ERROR {err}")

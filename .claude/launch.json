@@ -6,6 +6,18 @@
       "runtimeExecutable": ".venv\\Scripts\\python.exe",
       "runtimeArgs": ["-m", "uvicorn", "app.main:app", "--port", "8000"],
       "port": 8000
+    },
+    {
+      "name": "nova-live-chat",
+      "runtimeExecutable": ".venv\\Scripts\\python.exe",
+      "runtimeArgs": ["-m", "uvicorn", "app.main:app", "--port", "8020"],
+      "port": 8020
+    },
+    {
+      "name": "nova-control-room",
+      "runtimeExecutable": ".venv\\Scripts\\python.exe",
+      "runtimeArgs": ["-m", "uvicorn", "app.main:app", "--app-dir", ".claude\\worktrees\\control-room", "--port", "8010"],
+      "port": 8010
     }
   ]
 }

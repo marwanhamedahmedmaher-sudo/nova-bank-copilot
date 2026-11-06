@@ -26,6 +26,17 @@ CARD_OR_FRAUD = re.compile(
     r"\b(lost|stolen|stole|missing|fraud|scam|hacked|unauthori[sz]ed)\b|"
     r"فقدت|ضاعت|ضايعة|اتسرقت|سرقت|مسروقة|احتيال|نصب|"
     r"\b(da3et|da3it|etsara2et|etsara2it|sara2oha|ensara2|na9ab|nasab)\b", re.I)
+# Abusive language: an agent handles the customer, the copilot never auto-replies to it
+ABUSIVE = re.compile(
+    r"\b(fuck\w*|shit\w*|bullshit|bitch\w*|bastards?|idiots?|stupid|morons?|asshole\w*|damn|crap|wtf|stfu)\b|"
+    r"غبي|أغبيا|اغبيا|حمار|حمير|زفت|كلب|كلاب|حيوان|حرامي|حرامية|نصابين|"
+    r"\b(ghabi|aghbeya|7mar|7omar|7ayawan|kalb|kelab|zeft|a7a|7aramy|7aramiya|ya ibn)\b", re.I)
+# Nothing to do with banking (recipes, homework, code, jokes): the copilot is not a general chatbot
+OFF_TOPIC = re.compile(
+    r"\b(recipes?|cupcakes?|cakes?|cookies?|bake|baking|cook|cooking|poems?|jokes?|homework|essay|song|lyrics|"
+    r"weather|football|match score|write (me )?(a |some )?code|python script|horoscope)\b|"
+    r"وصفة|كب ?كيك|كيكة|طبخ|نكتة|قصيدة|"
+    r"\b(wasfa|kab ?keek|keka|nokta)\b", re.I)
 # Latin, Arabic, digits, punctuation and currency/arrow symbols; anything else in a reply is a generation glitch
 UNEXPECTED_SCRIPT = re.compile(r"[^\x00-\x7F -ɏ؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿ -⁯₠-⃏←-⇿]")
 PII_PATTERNS = [
@@ -56,7 +67,7 @@ APPROVER_NAMES = {"agent": "agent", "team_leader": "Team Leader", "operations_ma
 # Risk labels for every draft, decided here and never by the model; the model can only raise risk through its flags.
 MONEY_ACTIONS = {"request_fee_waiver", "block_card", "order_replacement_card", "refer_to_credit_team"}
 HANDOVER_ACTIONS = {"open_dispute", "escalate_to_supervisor", "log_complaint"}
-BLOCKING_FLAGS = {"prompt_injection", "third_party_request"}
+BLOCKING_FLAGS = {"prompt_injection", "third_party_request", "abusive_language", "off_topic"}
 HIGH_FLAGS = {"approval_request", "fraud_suspected", "card_or_fraud"}
 
 
@@ -123,6 +134,10 @@ def input_flags(message, scope):
         flags.append("approval_request")
     if CARD_OR_FRAUD.search(message):
         flags.append("card_or_fraud")
+    if ABUSIVE.search(message):
+        flags.append("abusive_language")
+    if OFF_TOPIC.search(message):
+        flags.append("off_topic")
     return flags
 
 
