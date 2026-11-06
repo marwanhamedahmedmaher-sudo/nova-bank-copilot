@@ -387,7 +387,7 @@
     </div>
     <div class="kr-item eng">
       <div class="kr-tag">Guardrails: must not drop</div>
-      <div class="kr-text">First-contact resolution, citation accuracy (eval today: 24 of 24 facts, 22 of 24 locations) and the share of drafts agents accept after checking.</div>
+      <div class="kr-text">First-contact resolution, citation accuracy (eval today: 24 of 24 facts, 21 of 24 locations) and the share of drafts agents accept after checking.</div>
     </div>
     <div class="kr-model">Model: an AI copilot inside Nova Bank's desktop agent console (Egypt), laid out in three columns: case queue, the conversation with the copilot's draft, and the verified customer's records. The copilot drafts a formal-Arabic reply grounded in policy and this customer's records, cites every claim, and only suggests actions that a human must click and sometimes have approved. Flow: a Franco-Arabic chat asking when a disputed EGP 1,200 will come back. Phase 1 is chat only. A dispute-status chat takes 13.2 minutes today in our ticket data, so 2 minutes is about 15% of it.</div>
     <div class="kr-flow">
@@ -428,7 +428,7 @@
       <tr><td>Reply drafted for the agent: no policy lookup, no typing 60–80 words of formal Arabic<span class="est">EST</span><span class="src">About 30s to find POL-04 §5 and the record, plus about 2 min to type and check the Arabic</span></td><td class="sec plus">+150</td></tr>
       <tr><td>Waiting for the draft<span class="src">Measured: 15.75s on screen 04 (rec 1)</span></td><td class="sec minus">−16</td></tr>
       <tr><td>Reading the same facts three times and checking an English citation list<span class="est">EST</span><span class="src">About 130 words to read plus 5 claims to cross-check (recs 5 and 6)</span></td><td class="sec minus">−45</td></tr>
-      <tr><td>Wrong drafts the agent has to rewrite<span class="est">EST</span><span class="src">Eval: 40 of 41 pass. We assume 1 in 20 live drafts is wrong, at about 90s each (rec 10)</span></td><td class="sec minus">−5</td></tr>
+      <tr><td>Wrong drafts the agent has to rewrite<span class="est">EST</span><span class="src">Eval: 39 of 41 pass. We assume 1 in 20 live drafts is wrong, at about 90s each (rec 10)</span></td><td class="sec minus">−5</td></tr>
       <tr class="total"><td>Net today: about 1.4 minutes, 70% of the target</td><td class="sec">+84</td></tr>
       <tr class="group"><td colspan="2">With the ranked fixes</td></tr>
       <tr><td>Draft ready when the case opens (rec 11)</td><td class="sec plus">+16</td></tr>
@@ -732,7 +732,7 @@
       </div>
       <details class="how">
         <summary>How did I get this?</summary>
-        <div class="how-body">The latest eval run passed 40 of 41 cases and placed 22 of 24 citations in the right location. That is strong, but it means about 1 in 12 citation locations was off, and live traffic is messier than a golden set. In the minute budget we assume 1 in 20 live drafts is wrong, at about 90s each (wait, read, flag, rewrite). That costs about 5 seconds per chat on average. It is small, but it grows quickly if accuracy slips on fee or card chats.</div>
+        <div class="how-body">The latest eval run passed 39 of 41 cases and placed 21 of 24 citations in the right location. That is strong, but it means about 1 in 8 citation locations was off, and live traffic is messier than a golden set. In the minute budget we assume 1 in 20 live drafts is wrong, at about 90s each (wait, read, flag, rewrite). That costs about 5 seconds per chat on average. It is small, but it grows quickly if accuracy slips on fee or card chats.</div>
       </details>
       <div class="telos-comments" data-rec="10"></div>
     </div>
