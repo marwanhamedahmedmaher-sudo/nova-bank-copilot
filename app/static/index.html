@@ -198,7 +198,7 @@ const shadow = {};   // case_id -> promise of the hidden draft
 const risks = {};    // case_id -> risk label seen in this session (any mode)
 const drafts = {};   // case_id -> copilot draft the agent asked for (copilot mode)
 let closed = {};     // case_id -> closed info for the current mode (from the audit log)
-let tab = "open", page = 0;
+let tab = "open", page = 0, generation = 0;  // generation: bumped on demo reset so older answers are ignored
 const PAGE = 5;
 const MODE_HINT = {shadow:"The copilot drafts silently; the agent writes every reply.",
   copilot:"Phase 1: the agent clicks Ask copilot for a draft, edits, and sends.",
@@ -225,22 +225,30 @@ async function setMode(m){
   $("#mode-pill").textContent = MODE_PILL[m];
   $("#modehint").textContent = MODE_HINT[m];
   await refreshClosed();
+  if(mode !== m) return;  // switched again while loading
   if(m === "auto") runAuto();
   if(current) openCase(current);
 }
+let closedSeq = 0;
 async function refreshClosed(){
-  try{ closed = Object.fromEntries((await (await fetch(`/api/closed?mode=${mode}`)).json()).map(c => [c.case_id, c])); } catch {}
+  const m = mode, seq = ++closedSeq;
+  let rows;
+  try{ rows = await (await fetch(`/api/closed?mode=${m}`)).json(); } catch { return; }
+  if(seq !== closedSeq || m !== mode) return;  // a newer refresh or another mode owns the list
+  closed = Object.fromEntries(rows.map(c => [c.case_id, c]));
   renderQueue();
 }
 $("#gear").onclick = e => { e.stopPropagation(); const s = $("#settings"); s.hidden = !s.hidden; $("#gear").setAttribute("aria-expanded", !s.hidden); };
-document.addEventListener("click", e => { if(!$("#settings").hidden && !$("#settings").contains(e.target) && e.target !== $("#gear")) $("#settings").hidden = true; });
-document.addEventListener("keydown", e => { if(e.key === "Escape") $("#settings").hidden = true; });
+const closeSettings = () => { $("#settings").hidden = true; $("#gear").setAttribute("aria-expanded", "false"); };
+document.addEventListener("click", e => { if(!$("#settings").hidden && !$("#settings").contains(e.target) && e.target !== $("#gear")) closeSettings(); });
+document.addEventListener("keydown", e => { if(e.key === "Escape") closeSettings(); });
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { tab = b.dataset.tab; page = 0; renderQueue(); });
 $("#prev").onclick = () => { page--; renderQueue(); };
 $("#next").onclick = () => { page++; renderQueue(); };
 $("#reset").onclick = async () => {
   if(!confirm("Reopen every case in all three modes? The audit log keeps the history.")) return;
-  await post("/api/demo/reset");
+  try{ await post("/api/demo/reset"); } catch(e){ toast(`Reset failed: ${e.message}`); return; }
+  generation++;
   for(const o of [auto, shadow, risks, drafts]) Object.keys(o).forEach(k => delete o[k]);
   current = null; $("#convo").innerHTML = `<div class="empty">Pick a case from the queue.</div>`; $("#draft").innerHTML = "";
   $("#settings").hidden = true; toast("Demo reset: every case is open again.");
@@ -266,7 +274,7 @@ async function refreshDev(){
       <div>Draft changed</div><div>${s.edit_share_pct}% on average</div>
       <div>Blind sends</div><div>${s.blind_send_pct}% sent unedited, no source opened</div>
       <div>Sources opened</div><div>${s.source_opens}</div>
-      <div>Auto reviews</div><div>👍 ${s.auto_reviews.up} · 👎 ${s.auto_reviews.down}</div>
+      <div>Auto reviews</div><div>👍 ${s.auto_reviews.up} · 👎 ${s.auto_reviews.down} <span class="hint">(since last demo reset)</span></div>
       <div>Auto-reply</div><div>${s.auto.resolved} resolved · ${s.auto.escalated} escalated · ${s.auto.awaiting_approval} awaiting · ${s.auto.needs_agent} to agent</div></div>`;
 }
 
@@ -333,9 +341,10 @@ function runAuto(){
   cases.forEach(c => {
     if(auto[c.case_id] || closed[c.case_id]) return;
     auto[c.case_id] = {pending:true};
-    post(`/api/cases/${c.case_id}/auto`).then(r => { auto[c.case_id] = r; risks[c.case_id] = r.risk; })
-      .catch(e => { delete auto[c.case_id]; toast(`${c.case_id}: ${e.message}`); })
-      .finally(async () => { if(mode === "auto"){ await refreshClosed(); if(current === c.case_id) openCase(c.case_id); } refreshDev(); });
+    const gen = generation;
+    post(`/api/cases/${c.case_id}/auto`).then(r => { if(gen !== generation) return; auto[c.case_id] = r; risks[c.case_id] = r.risk; })
+      .catch(e => { if(gen !== generation) return; auto[c.case_id] = {outcome: "needs_agent", error: e.message}; })
+      .finally(async () => { if(gen !== generation) return; if(mode === "auto"){ await refreshClosed(); if(current === c.case_id) openCase(c.case_id); } refreshDev(); });
   });
   renderQueue();
 }
@@ -372,7 +381,7 @@ function openClosed(id, bubble){
     const text = (k.reply || "").replaceAll("{{FIRST_NAME}}", first);
     $("#draft").innerHTML = `<div class="row" style="margin-top:0"><span class="status ready">✓ ${BY[k.by]}</span>
         ${k.outcome ? `<span class="tag">${k.outcome}</span>` : ""}<span class="hint">${fmtTime(k.at)}</span></div>
-      <div class="card"><h3>Reply sent to the customer</h3>${text ? `<div class="sent ${ar?"rtl":""}">${bidi(text, ar?"ar":"en")}</div>` : `<span class="hint">No reply text in the log.</span>`}</div>`;
+      <div class="card"><h3>Reply sent to the customer · as stored in the audit log (masked)</h3>${text ? `<div class="sent ${ar?"rtl":""}">${bidi(text, ar?"ar":"en")}</div>` : `<span class="hint">No reply text in the log.</span>`}</div>`;
   }
   if(k.by === "copilot") $("#draft").insertAdjacentHTML("afterbegin", reviewHtml(k));
   bindReview(id);
@@ -440,6 +449,7 @@ function openAuto(id, bubble){
   $("#convo").innerHTML = bubble;
   const a = auto[id];
   if(!a || a.pending){ $("#draft").innerHTML = `<div class="empty">The copilot is assessing this case…</div>`; if(!a) runAuto(); return; }
+  if(a.outcome === "needs_agent" && (a.error || a.result.status !== "ready")) return manualReply(id, a);
   if(a.outcome === "awaiting_approval" || a.outcome === "needs_agent") return renderDraft(a.result, {approve: a.outcome === "awaiting_approval"});
   // resolved or escalated by the copilot: read-only record of what went out
   const d = a.result, lang = d.draft.customer_language === "en" ? "en" : "ar";
@@ -457,6 +467,25 @@ function openAuto(id, bubble){
       `Nothing that moves money happens without a human. This case only needed information${a.actions.length ? " and a hand-over" : ""}.`}</div>`;
   renderCustomer(citedIds(d.draft));
   bindCites();
+}
+
+// The copilot failed or its draft was blocked: the agent answers this case themselves, and it closes on send.
+function manualReply(id, a){
+  const why = a.error ? `Copilot unavailable: ${esc(a.error)}` : "The copilot's draft was blocked by a guardrail, so it is hidden.";
+  $("#draft").innerHTML = `<div class="row" style="margin-top:0">${a.risk ? riskBadge(a.risk) : ""}<span class="status blocked">Needs an agent</span></div>
+    <div class="card"><h3>Your reply</h3><p class="hint" style="margin-top:0">${why} Answer from the policy yourself or escalate.</p>
+      <textarea id="own" placeholder="Write your reply to the customer…" style="min-height:110px;margin-top:0"></textarea>
+      <div class="row"><button class="primary" id="send-own">Send reply</button>${a.error ? `<button id="retry">Ask the copilot again</button>` : ""}</div></div>`;
+  $("#retry") && ($("#retry").onclick = () => { delete auto[id]; runAuto(); openCase(id); });
+  $("#send-own").onclick = async () => {
+    const text = $("#own").value.trim();
+    if(!text){ $("#own").focus(); return; }
+    $("#send-own").disabled = true;
+    try{ await post(`/api/cases/${id}/send`, {drafted_reply: "", final_reply: text, mode: "auto", sources_opened: sourcesOpened, handle_s: handleSeconds()}); }
+    catch(e){ $("#send-own").disabled = false; toast(`Not sent: ${e.message}`); return; }
+    toast("Sent and logged with your handle time.");
+    await refreshClosed(); openCase(id); refreshDev();
+  };
 }
 
 function renderCustomer(cited){
@@ -478,14 +507,15 @@ function renderCustomer(cited){
 }
 
 async function ask(){
+  const id = current;  // the agent may open another case while this one drafts
   const btn = $("#ask"); btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> Drafting…`;
   $("#draft").innerHTML = `<div class="empty">Reading policies and this customer's records…</div>`;
   try{
-    const data = await post(`/api/cases/${current}/suggest`, {message:$("#msg").value});
-    risks[current] = data.risk; drafts[current] = data; renderQueue();
-    renderDraft(data);
-  }catch(e){ $("#draft").innerHTML = `<div class="card"><span class="status blocked">Copilot unavailable</span><p>${esc(e.message)}</p><p class="hint">Answer the customer manually.</p></div>`; }
-  btn.disabled = false; btn.textContent = "Ask copilot";
+    const data = await post(`/api/cases/${id}/suggest`, {message:$("#msg").value});
+    risks[id] = data.risk; drafts[id] = data; renderQueue();
+    if(current === id && mode === "copilot") renderDraft(data);
+  }catch(e){ if(current === id) $("#draft").innerHTML = `<div class="card"><span class="status blocked">Copilot unavailable</span><p>${esc(e.message)}</p><p class="hint">Answer the customer manually.</p></div>`; }
+  const b = $("#ask"); if(b && current === id){ b.disabled = false; b.textContent = "Ask copilot"; }
   refreshDev();
 }
 
