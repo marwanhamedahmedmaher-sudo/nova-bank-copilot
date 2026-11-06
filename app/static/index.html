@@ -89,17 +89,47 @@ tr.hl td{background:#fff7d6}
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.5);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media (max-width:1100px){main{grid-template-columns:1fr;height:auto}.col{max-height:none}}
+/* modes, risk labels, dev mode */
+.modes{display:inline-flex;background:rgba(255,255,255,.12);border-radius:999px;padding:3px}
+.modes button{background:transparent;border:0;color:#cfe0f5;border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:600}
+.modes button.on{background:#fff;color:var(--brand)}
+.devtoggle{display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;user-select:none}
+body:not(.dev) .devonly{display:none !important}
+.risk{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.risk.low_resolved{background:var(--ok-bg);color:var(--ok)}
+.risk.low_escalated{background:#e0f4f4;color:var(--accent)}
+.risk.high{background:var(--warn-bg);color:var(--warn)}
+.risk.blocked{background:var(--bad-bg);color:var(--bad)}
+.risk.pending{background:var(--chip);color:var(--muted)}
+.case .outcome{font-size:12px;margin-top:5px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.reason{font-size:12px;color:var(--muted);margin-top:4px}
+.devpanel{margin:10px 12px;border:1px dashed #b9c7da;border-radius:10px;padding:10px 12px;background:#fbfcfe;font-size:12.5px}
+.devpanel b{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+.devpanel .kv{margin-top:6px}
+.shadowbox{border:1px dashed #b9c7da;background:#fbfcfe}
+.sent{background:var(--ok-bg);border:1px solid #bfe5cf;border-radius:10px;padding:12px 14px;font-size:15px;line-height:1.6}
+.sent.rtl{direction:rtl;text-align:right;font-family:"IBM Plex Sans Arabic",Inter,sans-serif}
 </style>
 </head>
 <body>
 <header>
   <div class="logo">Nova Bank <span>· Agent Console</span></div>
+  <div class="modes" id="modes" role="tablist" aria-label="Copilot mode">
+    <button data-mode="shadow" title="The copilot drafts silently; the agent writes every reply">Shadow</button>
+    <button data-mode="copilot" title="Phase 1: the copilot suggests, the agent sends">Copilot</button>
+    <button data-mode="auto" title="Phase 2 preview: low risk is handled by the copilot; high risk waits for approval">Auto-reply</button>
+  </div>
   <div class="sp"></div>
+  <label class="devtoggle"><input type="checkbox" id="devtoggle"> Dev mode</label>
+  <div class="pill" id="today-pill"></div>
   <div class="pill">Agent: Sara (agent-07)</div>
-  <div class="pill">Copilot on · suggestions only</div>
+  <div class="pill" id="mode-pill"></div>
 </header>
 <main>
-  <section class="col" id="queue"><h2>Open cases</h2></section>
+  <section class="col" id="queue-col"><h2>Open cases</h2>
+    <div class="devpanel devonly" id="devpanel"></div>
+    <div id="queue"></div>
+  </section>
 
   <section class="col center">
     <div class="convo" id="convo"><div class="empty">Pick a case from the queue.</div></div>
@@ -119,40 +149,180 @@ const ACTION = {open_dispute:"Open dispute", block_card:"Block card", order_repl
   refer_to_credit_team:"Refer to Credit team"};
 const APPROVER = {agent:"Agent clicks", team_leader:"Team Leader approves", operations_manager:"Ops Manager approves",
   disputes_team:"Disputes team decides", credit_team:"Credit team decides"};
+const TEAM = {agent:"agent", team_leader:"Team Leader", operations_manager:"Operations Manager", disputes_team:"Disputes team", credit_team:"Credit team"};
 const FLAG = {prompt_injection:"Prompt injection", third_party_request:"Asks about someone else", approval_request:"Asks for approval",
-  complaint:"Complaint", fraud_suspected:"Fraud suspected", outside_policy:"Outside policy"};
-let current = null, detail = null;
+  complaint:"Complaint", fraud_suspected:"Fraud suspected", card_or_fraud:"Lost card or fraud", outside_policy:"Outside policy"};
+const RISK = {low_resolved:"Low · resolved", low_escalated:"Low · escalated", high:"High · needs approval", blocked:"Blocked", pending:"Assessing…"};
+const OUTCOME_TEXT = {resolved:"Resolved by copilot", escalated:"Escalated by copilot", awaiting_approval:"Needs your approval", needs_agent:"Needs an agent", approved:"Approved by you"};
+const OUTCOME_ORDER = {awaiting_approval:0, needs_agent:1, approved:2, escalated:3, resolved:4};
+const MODE_PILL = {shadow:"Copilot shadowing · agent replies", copilot:"Copilot on · suggestions only", auto:"Auto-reply · high risk needs approval"};
 
-function toast(msg){ const t=$("#toast"); t.textContent=msg; t.style.display="block"; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display="none",3200); }
+// localStorage can be blocked (locked-down browsers); the console must still work, just without remembering
+const store = {get: k => { try { return localStorage.getItem(k); } catch { return null; } },
+               set: (k, v) => { try { localStorage.setItem(k, v); } catch {} }};
+let cases = [], current = null, detail = null;
+let mode = store.get("nova.mode") || "copilot";
+let openedAt = 0, sourcesOpened = 0;
+const auto = {};     // case_id -> /auto response, or {pending:true}
+const shadow = {};   // case_id -> promise of the hidden draft
+const risks = {};    // case_id -> risk label seen in this session (any mode)
+
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.style.display="block"; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display="none",3600); }
 const rtl = lang => lang==="ar"||lang==="arz";
 // keep dates and amounts left-to-right inside Arabic text (2026-10-15 would otherwise render reversed)
 const bidi = (text, lang) => rtl(lang) ? esc(text).replace(/(\d[\d\-.,:\/]*\d|\d)/g, '<bdi dir="ltr">$1</bdi>') : esc(text);
+const post = async (path, body) => {
+  const r = await fetch(path, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body || {})});
+  const data = await r.json();
+  if(!r.ok) throw new Error(data.detail || "request failed");
+  return data;
+};
+const riskBadge = r => r ? `<span class="risk ${r.level}" title="${esc(r.reason || "")}">${RISK[r.level]}</span>` : "";
+const handleSeconds = () => Math.round((Date.now() - openedAt) / 100) / 10;
 
+// ---- header: mode switcher, dev mode, today -------------------------------------------------
+function setMode(m){
+  mode = m; store.set("nova.mode", m);
+  document.querySelectorAll("#modes button").forEach(b => b.classList.toggle("on", b.dataset.mode === m));
+  $("#mode-pill").textContent = MODE_PILL[m];
+  renderQueue();
+  if(m === "auto") runAuto();
+  if(current) openCase(current);
+}
+document.querySelectorAll("#modes button").forEach(b => b.onclick = () => setMode(b.dataset.mode));
+$("#devtoggle").checked = store.get("nova.dev") === "1";
+document.body.classList.toggle("dev", $("#devtoggle").checked);
+$("#devtoggle").onchange = e => { store.set("nova.dev", e.target.checked ? "1" : "0"); document.body.classList.toggle("dev", e.target.checked); refreshDev(); };
+fetch("/api/today").then(r => r.json()).then(d => $("#today-pill").textContent = "Today: " + d.today);
+
+async function refreshDev(){
+  if(!document.body.classList.contains("dev")) return;
+  let s;
+  try{ s = await (await fetch("/api/dev/summary")).json(); } catch { return; }
+  const modes = Object.entries(s.sends_by_mode).map(([m,n]) => `${m} ${n}`).join(" · ") || "none yet";
+  const handle = Object.entries(s.avg_handle_s_by_mode).map(([m,v]) => `${m} ${v}s`).join(" · ") || "none yet";
+  $("#devpanel").innerHTML = `<b>Dev mode · AI PM and engineer · whole audit log</b>
+    <div class="kv"><div>Drafts</div><div>${s.drafts} · ${s.blocked} blocked</div>
+      <div>Avg latency / cost</div><div>${s.avg_latency_s}s · $${s.avg_cost_usd}</div>
+      <div>Sends by mode</div><div>${modes}</div>
+      <div>Avg handle time</div><div>${handle}</div>
+      <div>Draft changed</div><div>${s.edit_share_pct}% on average</div>
+      <div>Blind sends</div><div>${s.blind_send_pct}% sent unedited, no source opened</div>
+      <div>Sources opened</div><div>${s.source_opens}</div>
+      <div>Auto-reply</div><div>${s.auto.resolved} resolved · ${s.auto.escalated} escalated · ${s.auto.awaiting_approval} awaiting · ${s.auto.needs_agent} to agent</div></div>`;
+}
+
+// ---- queue ------------------------------------------------------------------------------------
 async function loadQueue(){
-  const cases = await (await fetch("/api/cases")).json();
-  $("#queue").innerHTML = "<h2>Open cases</h2>" + cases.map(c => `
-    <div class="case" data-id="${c.case_id}">
+  cases = await (await fetch("/api/cases")).json();
+  setMode(mode);
+  refreshDev();
+}
+
+function renderQueue(){
+  let list = [...cases];
+  if(mode === "auto") list.sort((a,b) => (OUTCOME_ORDER[auto[a.case_id]?.outcome] ?? 9) - (OUTCOME_ORDER[auto[b.case_id]?.outcome] ?? 9));
+  $("#queue").innerHTML = list.map(c => {
+    const a = auto[c.case_id];
+    let line = "";
+    if(mode === "auto") line = a?.pending ? riskBadge({level:"pending"}) : a ? `${riskBadge(a.risk)} <span class="hint">${OUTCOME_TEXT[a.outcome]}${
+      a.actions?.length ? " · " + a.actions.map(x => ACTION[x.action] + (x.approver === "agent" ? "" : " → " + TEAM[x.approver])).join(", ") : ""}</span>` : "";
+    else if(mode !== "shadow" && risks[c.case_id]) line = riskBadge(risks[c.case_id]);
+    return `<div class="case ${c.case_id===current?"active":""}" data-id="${c.case_id}">
       <div class="top"><span>${esc(c.customer_name)}</span><span class="hint">${c.channel==="call"?"📞 Call":"💬 Chat"}</span></div>
       <div class="meta">${c.case_id} · ${esc(c.plan)} · <span class="tag">${LANG[c.language]}</span></div>
       <div class="msg" ${rtl(c.language)?'dir="rtl"':''}>${esc(c.message)}</div>
-    </div>`).join("");
+      ${line ? `<div class="outcome">${line}</div>` : ""}
+    </div>`;}).join("");
   document.querySelectorAll(".case").forEach(el => el.onclick = () => openCase(el.dataset.id));
 }
 
+// Auto-reply: assess every case in parallel; each card updates as its answer comes back.
+function runAuto(){
+  cases.forEach(c => {
+    if(auto[c.case_id]) return;
+    auto[c.case_id] = {pending:true};
+    post(`/api/cases/${c.case_id}/auto`).then(r => { auto[c.case_id] = r; risks[c.case_id] = r.risk; })
+      .catch(e => { delete auto[c.case_id]; toast(`${c.case_id}: ${e.message}`); })
+      .finally(() => { if(mode === "auto"){ renderQueue(); if(current === c.case_id) openCase(c.case_id); } refreshDev(); });
+  });
+  renderQueue();
+}
+
+// ---- case view --------------------------------------------------------------------------------
 async function openCase(id){
+  if(id !== current){ openedAt = Date.now(); sourcesOpened = 0; }
   current = id;
   document.querySelectorAll(".case").forEach(el => el.classList.toggle("active", el.dataset.id===id));
   detail = await (await fetch(`/api/cases/${id}`)).json();
   const c = detail.case;
-  $("#convo").innerHTML = `
-    <div class="who">Customer · ${c.channel==="call"?"call, typed by the agent":"chat"} · ${LANG[c.language]}</div>
-    <div class="bubble ${rtl(c.language)?"rtl":""}">${esc(c.message)}</div>
+  const bubble = `<div class="who">Customer · ${c.channel==="call"?"call, typed by the agent":"chat"} · ${LANG[c.language]}</div>
+    <div class="bubble ${rtl(c.language)?"rtl":""}">${esc(c.message)}</div>`;
+  renderCustomer([]);
+  if(mode === "shadow") return openShadow(id, bubble);
+  if(mode === "auto") return openAuto(id, bubble);
+  $("#convo").innerHTML = bubble + `
     <textarea id="msg" placeholder="Edit or type what the customer says…">${esc(c.message)}</textarea>
     <div class="row"><button class="primary" id="ask">Ask copilot</button>
-      <span class="hint">The copilot only sees this customer's records and Nova policies. Try to break it.</span></div>`;
+      <span class="hint devonly">The copilot only sees this customer's records and Nova policies. Try to break it.</span></div>`;
   $("#ask").onclick = ask;
   $("#draft").innerHTML = "";
-  renderCustomer([]);
+}
+
+function openShadow(id, bubble){
+  // The copilot drafts in the background; the agent never sees it. Their send is logged next to it.
+  if(!shadow[id]) shadow[id] = post(`/api/cases/${id}/suggest`, {message: detail.case.message}).catch(e => ({error: e.message}));
+  $("#convo").innerHTML = bubble + `
+    <div class="card"><h3>Your reply</h3>
+      <textarea id="own" placeholder="Write your reply to the customer…" style="min-height:110px;margin-top:0"></textarea>
+      <div class="row"><button class="primary" id="send-own">Send reply</button>
+        <span class="hint">Shadow mode: the copilot is drafting silently, so the pilot can compare its draft with yours.</span></div></div>`;
+  $("#draft").innerHTML = `<div class="card shadowbox devonly"><h3>Shadow draft · the agent can't see this</h3><div id="shadow-draft" class="hint">Drafting…</div></div>`;
+  shadow[id].then(d => {
+    // shadow mode: the agent must not see the copilot's view, so its risk label stays out of the queue
+    if(current !== id || mode !== "shadow" || !$("#shadow-draft")) return;
+    if(d.error){ $("#shadow-draft").textContent = "Copilot unavailable: " + d.error; return; }
+    const lang = d.draft.customer_language === "en" ? "en" : "ar";
+    $("#shadow-draft").innerHTML = `<div class="row" style="margin-top:0">${riskBadge(d.risk)}<span class="tag">${d.draft.intent.replaceAll("_"," ")}</span></div>
+      <div class="reply ${rtl(lang)?"rtl":""}" style="margin-top:8px">${bidi(d.reply, lang)}</div><div class="en">EN: ${esc(d.reply_in_english)}</div>
+      <div class="metrics"><span>⏱ ${d.latency_s ?? "-"}s</span><span>💵 $${(d.cost_usd ?? 0).toFixed(4)}</span></div>`;
+  });
+  $("#send-own").onclick = async () => {
+    const text = $("#own").value.trim();
+    if(!text){ $("#own").focus(); return; }
+    const d = await shadow[id];
+    const drafted = d && !d.error ? d.reply : "";
+    let r;
+    try{ r = await post(`/api/cases/${id}/send`, {drafted_reply: drafted, final_reply: text, mode: "shadow",
+                                                  sources_opened: 0, handle_s: handleSeconds()}); }
+    catch(e){ toast(`Not sent: ${e.message}`); return; }
+    toast(drafted ? `Sent. Your reply differs from the copilot's hidden draft by ${r.changed_pct}%; both logged with your handle time.`
+                  : "Sent and logged with your handle time (no copilot draft to compare).");
+    refreshDev();
+  };
+}
+
+function openAuto(id, bubble){
+  $("#convo").innerHTML = bubble;
+  const a = auto[id];
+  if(!a || a.pending){ $("#draft").innerHTML = `<div class="empty">The copilot is assessing this case…</div>`; if(!a) runAuto(); return; }
+  if(a.outcome === "awaiting_approval" || a.outcome === "needs_agent") return renderDraft(a.result, {approve: a.outcome === "awaiting_approval"});
+  // resolved or escalated by the copilot: read-only record of what went out
+  const d = a.result, lang = d.draft.customer_language === "en" ? "en" : "ar";
+  $("#draft").innerHTML = `
+    <div class="row" style="margin-top:0">${riskBadge(d.risk)}<span class="status ready">✓ ${OUTCOME_TEXT[a.outcome]}</span>
+      <span class="tag">${d.draft.intent.replaceAll("_"," ")}</span>
+      ${d.replayed ? `<span class="tag" style="background:var(--warn-bg);color:var(--warn)">Offline: replayed saved draft</span>` : ""}</div>
+    <div class="reason devonly">Risk rule: ${esc(d.risk.reason)}</div>
+    <div class="card"><h3>${a.outcome === "approved" ? "Reply you approved" : "Reply the copilot sent"}</h3><div class="sent ${rtl(lang)?"rtl":""}">${bidi(d.reply, lang)}</div>
+      <div class="en">EN: ${esc(d.reply_in_english)}</div></div>
+    ${a.actions.length ? `<div class="card"><h3>${a.outcome === "approved" ? "Actions submitted" : "Handed over · a human team decides"}</h3>${a.actions.map(x => `
+      <div class="action"><div><b>${ACTION[x.action]}</b></div><span class="approver">${APPROVER[x.approver]}</span></div>`).join("")}</div>` : ""}
+    <div class="card"><h3>Claims and sources</h3>${factsHtml(d.draft)}</div>
+    <div class="hint" style="margin-top:10px">${a.outcome === "approved" ? "You approved this case; each action went to the approver Nova's policy names." :
+      `Nothing that moves money happens without a human. This case only needed information${a.actions.length ? " and a hand-over" : ""}.`}</div>`;
+  renderCustomer(citedIds(d.draft));
+  bindCites();
 }
 
 function renderCustomer(cited){
@@ -177,76 +347,109 @@ async function ask(){
   const btn = $("#ask"); btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> Drafting…`;
   $("#draft").innerHTML = `<div class="empty">Reading policies and this customer's records…</div>`;
   try{
-    const r = await fetch(`/api/cases/${current}/suggest`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({message:$("#msg").value})});
-    const data = await r.json();
-    if(!r.ok) throw new Error(data.detail || "copilot error");
+    const data = await post(`/api/cases/${current}/suggest`, {message:$("#msg").value});
+    risks[current] = data.risk; renderQueue();
     renderDraft(data);
   }catch(e){ $("#draft").innerHTML = `<div class="card"><span class="status blocked">Copilot unavailable</span><p>${esc(e.message)}</p><p class="hint">Answer the customer manually.</p></div>`; }
   btn.disabled = false; btn.textContent = "Ask copilot";
+  refreshDev();
 }
 
-function renderDraft(d){
+const citedIds = dr => dr.facts.flatMap(f => f.citations.map(c => c.source_id.trim()));
+const factsHtml = dr => dr.facts.map(f => `<div class="fact">${esc(f.statement)}<br>
+  ${f.citations.map(c => `<span class="cite" data-src="${esc(c.source_id.trim())}" title="${esc(c.quote)}">${esc(c.source_id)}</span>`).join("")}</div>`).join("") || `<span class="hint">No claims.</span>`;
+function bindCites(){ document.querySelectorAll(".cite").forEach(el => el.onclick = () => showSource(el.dataset.src, el.title)); }
+
+function checksHtml(d){
+  const failed = d.checks.filter(c => !c.passed);
+  const row = c => { const cls = c.passed ? "pass" : (c.severity==="warn" ? "warn" : "fail");
+    return `<div class="check ${cls}"><span class="i">${c.passed?"✓":(c.severity==="warn"?"!":"✕")}</span><div>${esc(c.name)}<div class="d">${esc(c.detail)}</div></div></div>`; };
+  const summary = `<div class="check ${failed.length ? "fail" : "pass"}"><span class="i">${failed.length ? "✕" : "✓"}</span><div>${d.checks.length - failed.length}/${d.checks.length} checks passed</div></div>`;
+  // agents see one line unless something failed; dev mode shows the full list
+  return `<div class="card"><h3>Guardrail checks</h3>${failed.length ? failed.map(row).join("") : summary}
+    <div class="devonly">${d.checks.filter(c => c.passed).map(row).join("")}</div>
+    ${d.retried ? `<div class="hint" style="margin-top:6px">First draft failed a check; the copilot corrected it once.</div>` : ""}</div>`;
+}
+
+function renderDraft(d, opts = {}){
   const dr = d.draft, lang = dr.customer_language === "en" ? "en" : "ar";  // replies are formal Arabic or formal English
-  const cited = dr.facts.flatMap(f => f.citations.map(c => c.source_id.trim()));
   const flags = [...new Set([...d.input_flags, ...dr.risk_flags])];
   const ready = d.status === "ready";
+  const sendLabel = opts.approve ? "Approve and send" : "Send reply";
   $("#draft").innerHTML = `
     <div class="row" style="margin-top:0">
-      <span class="status ${d.status}">${ready ? "✓ Ready to send" : "✕ Blocked by guardrails"}</span>
+      ${riskBadge(d.risk)}
+      <span class="status ${d.status}">${ready ? (opts.approve ? "Waiting for your approval" : "✓ Ready to send") : "✕ Blocked by guardrails"}</span>
       <span class="tag">${dr.intent.replaceAll("_"," ")}</span>
       ${d.replayed ? `<span class="tag" style="background:var(--warn-bg);color:var(--warn)">Offline: replaying the last saved draft</span>` : ""}
       ${flags.length ? `<span class="flags">${flags.map(f=>`<span class="tag">⚠ ${FLAG[f]||f}</span>`).join("")}</span>` : ""}
     </div>
+    ${d.risk ? `<div class="reason devonly">Risk rule: ${esc(d.risk.reason)}</div>` : ""}
     <div class="card"><h3>For you</h3>${esc(dr.agent_summary)}</div>
     <div class="card"><h3>Suggested reply · ${lang === "en" ? "Formal English" : "Formal Arabic"}</h3>
       ${ready ? `<div class="reply ${rtl(lang)?"rtl":""}" id="reply" contenteditable="true" spellcheck="false" aria-label="Suggested reply, click to edit">${bidi(d.reply, lang)}</div>
       <div class="row" style="margin-top:6px"><span class="hint">Click the reply to edit it. Sending or flagging logs your version next to the draft.</span>
         <span class="tag edited" id="edited-tag" hidden>Edited</span><button id="undo" hidden>Undo edits</button></div>
       <div class="en">EN: ${esc(d.reply_in_english)}</div>
-      <div class="row"><button class="primary" id="send">Send reply</button><button id="copy">Copy</button><button id="flag">Flag as wrong</button></div>`
+      <div class="row"><button class="primary" id="send">${sendLabel}</button><button id="copy">Copy</button><button id="flag">Flag as wrong</button></div>
+      ${opts.approve ? `<div class="hint">Approving sends this reply and submits the actions below to the approvers named in Nova's policy.</div>` : ""}`
       : `<p>This draft failed a check below, so it is hidden. Answer from the policy yourself or escalate.</p><button id="flag">Flag</button>`}
       <div class="row" id="flag-box" hidden><input class="note" id="flag-note" placeholder="What is wrong? If you corrected the reply above, your version is logged too.">
         <button id="flag-submit">Submit flag</button></div>
     </div>
-    <div class="card"><h3>Claims and sources</h3>${dr.facts.map(f => `<div class="fact">${esc(f.statement)}<br>
-        ${f.citations.map(c => `<span class="cite" data-src="${esc(c.source_id.trim())}" title="${esc(c.quote)}">${esc(c.source_id)}</span>`).join("")}</div>`).join("") || `<span class="hint">No claims.</span>`}</div>
-    <div class="card"><h3>Suggested actions · nothing happens until a human approves</h3>${dr.suggested_actions.map((a,i) => `
+    <div class="card"><h3>Claims and sources</h3>${factsHtml(dr)}</div>
+    <div class="card"><h3>Suggested actions · nothing happens until a human approves</h3>${dr.suggested_actions.map(a => `
       <div class="action"><div><b>${ACTION[a.action]}</b><br><span class="hint">${esc(a.reason)}</span></div>
-        <div class="row" style="margin:0"><span class="approver">${APPROVER[a.approver]}</span><button data-act="${a.action}" data-reason="${esc(a.reason)}" data-amount="${a.amount_egp ?? ""}">${a.approver==="agent"?"Do it":"Send for approval"}</button></div></div>`).join("") || `<span class="hint">No actions suggested.</span>`}</div>
-    <div class="card"><h3>Guardrail checks</h3>${d.checks.map(c => {
-        const cls = c.passed ? "pass" : (c.severity==="warn" ? "warn" : "fail");
-        return `<div class="check ${cls}"><span class="i">${c.passed?"✓":(c.severity==="warn"?"!":"✕")}</span><div>${esc(c.name)}<div class="d">${esc(c.detail)}</div></div></div>`;}).join("")}
-      ${d.retried ? `<div class="hint" style="margin-top:6px">First draft failed a check; the copilot corrected it once.</div>` : ""}</div>
-    <div class="metrics"><span>⏱ ${d.latency_s}s</span><span>💵 $${d.cost_usd.toFixed(4)}</span>
-      <span>Tokens in ${d.tokens.input.toLocaleString()} · cached ${d.tokens.cache_read.toLocaleString()} · out ${d.tokens.output.toLocaleString()}</span><span>${d.model}</span></div>`;
-  renderCustomer(cited);
-  document.querySelectorAll(".cite").forEach(el => el.onclick = () => showSource(el.dataset.src, el.title));
+        <div class="row" style="margin:0"><span class="approver">${APPROVER[a.approver]}</span>${opts.approve ? "" :
+          `<button data-act="${a.action}" data-reason="${esc(a.reason)}" data-amount="${a.amount_egp ?? ""}">${a.approver==="agent"?"Do it":"Send for approval"}</button>`}</div></div>`).join("") || `<span class="hint">No actions suggested.</span>`}</div>
+    ${checksHtml(d)}
+    <div class="metrics devonly"><span>⏱ ${d.latency_s ?? "-"}s</span><span>💵 $${(d.cost_usd ?? 0).toFixed(4)}</span>
+      ${d.tokens ? `<span>Tokens in ${d.tokens.input.toLocaleString()} · cached ${d.tokens.cache_read.toLocaleString()} · out ${d.tokens.output.toLocaleString()}</span>` : ""}<span>${esc(d.model || "")}</span></div>`;
+  renderCustomer(citedIds(dr));
+  bindCites();
   document.querySelectorAll("[data-act]").forEach(el => el.onclick = () => act(el.dataset.act, el.dataset.reason, el.dataset.amount));
   // The agent can edit the reply in place; sending or flagging logs their version next to the draft for the edit-rate eval.
   const box = $("#reply"), words = s => s.trim().split(/\s+/).join(" ");
   const finalText = () => box ? box.innerText.trim() : d.reply;
   const isEdited = () => !!box && words(finalText()) !== words(d.reply);
-  const post = async (path, body) => (await fetch(`/api/cases/${current}/${path}`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)})).json();
   if(box){
     box.oninput = () => { $("#edited-tag").hidden = $("#undo").hidden = !isEdited(); };
     $("#undo").onclick = () => { box.innerHTML = bidi(d.reply, lang); box.oninput(); };
   }
   $("#send") && ($("#send").onclick = async () => {
-    const r = await post("send", {drafted_reply: d.reply, final_reply: finalText()});
-    toast(r.edited ? `Sent with ${r.changed_pct}% of the draft changed; both versions logged.` : "Sent as drafted and logged to the audit trail.");
+    const btn = $("#send"); btn.disabled = true;  // one click, one send
+    try{
+    if(opts.approve){
+      const r = await post(`/api/cases/${current}/approve`, {final_reply: finalText(), handle_s: handleSeconds(), sources_opened: sourcesOpened});
+      toast(`Approved and sent. ${r.actions.map(x => x.approver === "agent" ? `${ACTION[x.action]}: done` : `${ACTION[x.action]} → ${TEAM[x.approver]}`).join("; ") || "No actions."}`);
+      auto[current] = {...auto[current], outcome: "approved", actions: r.actions};
+      renderQueue(); openCase(current);
+    } else {
+      const r = await post(`/api/cases/${current}/send`, {drafted_reply: d.reply, final_reply: finalText(), mode,
+                                                         sources_opened: sourcesOpened, handle_s: handleSeconds()});
+      toast(r.edited ? `Sent with ${r.changed_pct}% of the draft changed; both versions logged.` : "Sent as drafted and logged to the audit trail.");
+    }
+    }catch(e){
+      btn.disabled = false;
+      toast(`Not sent: ${e.message}`);
+      if(opts.approve){ delete auto[current]; runAuto(); }  // the server lost its assessment (restart): assess again
+    }
+    refreshDev();
   });
   $("#copy") && ($("#copy").onclick = () => { navigator.clipboard.writeText(finalText()); toast("Copied."); });
   $("#flag").onclick = () => { $("#flag-box").hidden = false; $("#flag-note").focus(); };
   $("#flag-submit").onclick = async () => {
     const note = $("#flag-note").value.trim();
     if(!note){ $("#flag-note").focus(); return; }
-    const r = await post("flag", box ? {note, drafted_reply: d.reply, edited_reply: finalText()} : {note});
+    const r = await post(`/api/cases/${current}/flag`, box ? {note, drafted_reply: d.reply, edited_reply: finalText()} : {note});
     $("#flag-box").hidden = true; $("#flag-note").value = "";
     toast("Flagged for weekly review (POL-20 §6)" + (r.changed_pct ? `, with your correction (${r.changed_pct}% of the draft changed).` : "."));
   };
 }
 
 async function showSource(src, quote){
+  sourcesOpened++;  // Telos rec 14: was the draft checked before it was sent?
+  post(`/api/cases/${current}/source_opened`, {source: src}).catch(() => {});
   const box = $("#policy");
   if(src.startsWith("POL-")){
     const [pid, sec] = src.split("§").map(s => s.trim());
@@ -263,8 +466,7 @@ async function showSource(src, quote){
 }
 
 async function act(action, reason, amount){
-  const body = {action, reason, amount_egp: amount ? Number(amount) : null};
-  const r = await (await fetch(`/api/cases/${current}/action`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)})).json();
+  const r = await post(`/api/cases/${current}/action`, {action, reason, amount_egp: amount ? Number(amount) : null});
   toast(`${ACTION[action]}: ${r.note}`);
 }
 

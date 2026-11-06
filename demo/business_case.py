@@ -58,11 +58,14 @@ ASSUMPTIONS = [
     ("aht_chat", "Average handle time, in-scope chats", aht_chat, "min",
      f"Our synthetic tickets: the slowest in-scope contacts, because the agent types every answer (in-scope calls: {aht_call} min)"),
     ("saved_chat", "Minutes saved per assisted chat (base)", 2.0, "min",
-     f"ASSUMPTION: the copilot writes the reply, about 20% of a chat. The largest field study of AI help for chat agents measured +14% chats resolved per hour on average and +34% for new agents ({STUDY})"),
+     f"ASSUMPTION, traced screen by screen in the Telos minute budget (demo/telos-review): about 1.4 min as built today, 2.4 min once the pilot fixes land (draft ready on open, shorter reading, one-turn answers). 2.0 is the middle. Field study: +14% chats resolved per hour on average, +34% for new agents ({STUDY})"),
+    ("acw_saved", "After-chat work saved per assisted chat (pre-filled wrap-up)", 0.75, "min",
+     "ASSUMPTION from the Telos minute budget: about 60s typing the note and disposition becomes about 15s checking a wrap-up the copilot pre-fills (rec 13). Counted separately from minutes saved in the chat"),
+    ("acw_start", "Pre-filled wrap-up starts in month", 4, "month", "Roadmap: built during the pilot, live after it"),
     ("saved_call", "Minutes saved per assisted call (calls phase)", 1.0, "min",
      "ASSUMPTION at the floor: BofA EricaAssist ~1 min a call (research/competitors.md)"),
     ("adoption", "Share of in-scope contacts where agents use the copilot", 0.80, "%", "ASSUMPTION"),
-    ("drafts", "Copilot drafts per contact", 1.3, "drafts", "ASSUMPTION (some retries and follow-ups)"),
+    ("drafts", "Copilot drafts per contact", 1.5, "drafts", "ASSUMPTION: retries and follow-ups (1.3), plus drafts started when a case is assigned and then reassigned or closed unopened (Telos rec 11)"),
     ("usd_per_draft", "Model cost per draft", cost_per_suggestion, "USD", "MEASURED in our eval run (Claude Opus 5.5 incl. guard model)"),
     ("fx", "EGP per USD", 56.12, "EGP", "CBE rate 29 Oct 2026 (research/regulation.md)"),
     ("hosting", "In-country hosting and ops per month (production)", 250000, "EGP", "ASSUMPTION - range 150k-400k until Huawei Cairo / self-host quotes"),
@@ -137,6 +140,10 @@ row = add_rows(m, [
     ("chat_saved", "Minutes saved per month", "={chat_assisted}*{saved_chat}", "={chat_assisted}*{saved_chat}", "assisted chats x minutes saved", N),
     ("chat_fte", "Agent capacity freed (FTE)", "={chat_saved}/{capacity}", "={chat_saved}/{capacity}", "minutes saved / capacity", D1),
     ("chat_value", "Value of freed capacity per month (EGP)", "={chat_fte}*{agent_cost}", "={chat_fte}*{agent_cost}", "FTE x cost per agent", N),
+    ("acw_min", "After-chat minutes saved per month (from the wrap-up start month)", "={chat_assisted}*{acw_saved}", "={chat_assisted}*{acw_saved}",
+     "assisted chats x after-chat minutes saved", N),
+    ("acw_fte", "Agent capacity freed by the wrap-up (FTE)", "={acw_min}/{capacity}", "={acw_min}/{capacity}", "minutes saved / capacity", D1),
+    ("acw_value", "Value of the wrap-up per month (EGP)", "={acw_fte}*{agent_cost}", "={acw_fte}*{agent_cost}", "FTE x cost per agent", N),
     ("chat_model", "Model cost per month (EGP)", "={chat_assisted}*{drafts}*{usd_per_draft}*{fx}",
      "={chat_assisted}*{drafts}*{usd_per_draft}*{fx}", "drafts x measured cost", N),
     ("chat_egp", "Agent time saved per assisted chat (EGP)", "={saved_chat}*{agent_cost}/{capacity}", None, "minutes saved x agent cost per minute", D1),
@@ -157,15 +164,17 @@ row = add_rows(m, [
     ("agent_contact", "Agent cost per contact today (EGP)", "={agents}*{agent_cost}/{contacts}", None, "agent payroll / contacts", N),
     section("TOTALS - column B is year 1, column C is year 2"),
     ("m_p2", "Months the in-app chat runs", "=MIN(12,MAX(0,13-{p2_start}))", "=MIN(12,MAX(0,25-{p2_start}))", "from its start month", D0),
+    ("m_acw", "Months the pre-filled wrap-up runs", "=MIN(12,MAX(0,13-{acw_start}))", "=MIN(12,MAX(0,25-{acw_start}))", "from its start month", D0),
     ("m_calls", "Months the calls phase runs", "=MIN(12,MAX(0,13-{calls_start}))", "=MIN(12,MAX(0,25-{calls_start}))", "from its start month", D0),
-    ("value", "Value (EGP)", "=12*{chat_value}+{m_p2}*{p2_value}+{m_calls}*{call_value}",
-     "=12*{chat_value}+{m_p2}*{p2_value}+{m_calls}*{call_value}", "agent chats all year + in-app chat and calls for the months they run", N),
+    ("value", "Value (EGP)", "=12*{chat_value}+{m_acw}*{acw_value}+{m_p2}*{p2_value}+{m_calls}*{call_value}",
+     "=12*{chat_value}+{m_acw}*{acw_value}+{m_p2}*{p2_value}+{m_calls}*{call_value}",
+     "agent chats all year + wrap-up, in-app chat and calls for the months they run", N),
     ("running", "Running cost (EGP)", "=12*({hosting}+{chat_model})+{m_calls}*{call_cost}",
      "=12*({hosting}+{chat_model})+{m_calls}*{call_cost}", "hosting + model, plus speech-to-text once calls start", N),
     ("cost", "Total cost (EGP)", "={build}+{running}", "={running}", "year 1 adds the one-off build", N),
     ("net", "Net (EGP)", "={value}-{cost}", "={value}-{cost}", "value - cost", N),
     ("cum", "Cumulative net (EGP)", "={net:B}", "={net:B}+{net:C}", "running total", N),
-    ("hires", "Hires avoided next year", None, "=MIN({chat_fte}+{p2_fte}*{m_p2}/12+{call_fte}*{m_calls}/12,{needed}-{agents})",
+    ("hires", "Hires avoided next year", None, "=MIN({chat_fte}+{acw_fte}*{m_acw}/12+{p2_fte}*{m_p2}/12+{call_fte}*{m_calls}/12,{needed}-{agents})",
      "growth absorbed: freed FTE, capped at the hires growth needs", D1),
     ("payback", "Programme pays back in month", "='Cash flow'!B27", None, "first month the cumulative net turns positive (Cash flow sheet)", D0),
 ])
@@ -173,14 +182,14 @@ for col, w in zip("ABCD", [48, 24, 24, 56]):
     m.column_dimensions[col].width = w
 
 f = wb.create_sheet("Cash flow")
-f.append(["Month", "Agent chats", "In-app chat", "Calls", "Running cost", "Build", "Net", "Cumulative net"])
+f.append(["Month", "Agent chats (incl. wrap-up)", "In-app chat", "Calls", "Running cost", "Build", "Net", "Cumulative net"])
 for c in f[1]:
     c.font, c.fill = head, fill
 for month in range(1, 25):
     r, col = month + 1, "B" if month <= 12 else "C"
     f.append([
         month,
-        f"=Model!{col}{row['chat_value']}",
+        f"=Model!{col}{row['chat_value']}+IF($A{r}>={ref['acw_start']},Model!{col}{row['acw_value']},0)",
         f"=IF($A{r}>={ref['p2_start']},Model!{col}{row['p2_value']},0)",
         f"=IF($A{r}>={ref['calls_start']},Model!{col}{row['call_value']},0)",
         f"={ref['hosting']}+Model!{col}{row['chat_model']}+IF($A{r}>={ref['calls_start']},Model!{col}{row['call_cost']},0)",
@@ -228,6 +237,25 @@ for h in hostings:
     s.cell(s.max_row, 1).number_format = N
     for c in range(2, 5):
         s.cell(s.max_row, c).number_format = N
+s.append([])
+s.append(["Year 1 and year 2 net (EGP) by case - minutes saved in the chat and after it (Telos minute budget)"])
+s.cell(s.max_row, 1).font = bold
+s.append(["Case", "Minutes saved in the chat", "After-chat minutes saved", "Year 1 net", "Year 2 net"])
+for c in s[s.max_row]:
+    c.font, c.fill = head, fill
+CASES = [("Low: the console as built today, no wrap-up", 1.4, 0),
+         ("Base: the Assumptions sheet", None, None),
+         ("Upside: all pilot fixes and the wrap-up", 2.4, 0.75)]
+for name, in_chat, after in CASES:
+    in_chat_f = ref["saved_chat"] if in_chat is None else in_chat
+    after_f = ref["acw_saved"] if after is None else after
+    r = s.max_row + 1
+    per_min = lambda col: f"Model!${col}${row['chat_assisted']}/Model!${col}${row['capacity']}*{ref['agent_cost']}"
+    net = lambda col: (f"=Model!${col}${row['net']}+12*(B{r}-{ref['saved_chat']})*{per_min(col)}"
+                       f"+Model!${col}${row['m_acw']}*(C{r}-{ref['acw_saved']})*{per_min(col)}")
+    s.append([name, f"={in_chat_f}" if in_chat is None else in_chat, f"={after_f}" if after is None else after, net("B"), net("C")])
+    for c in (4, 5):
+        s.cell(s.max_row, c).number_format = N
 s.column_dimensions["A"].width = 30
 
 p = wb.create_sheet("Budget ask")
@@ -237,7 +265,7 @@ for c in p[1]:
 p.append(["Year 1 budget: build + 12 months of running", f"=Model!B{row['cost']}", "", "Assumptions + Model sheets"])
 p.append(["  of which one-off build", f"={ref['build']}", "", "4 people x 3 months"])
 p.append(["  of which running cost per month", f"={ref['hosting']}+Model!B{row['chat_model']}", "", "in-country hosting + measured model cost"])
-p.append(["Agent time saved per assisted chat", f"=Model!B{row['chat_egp']}", "", "2 minutes of agent time"])
+p.append(["Agent time saved per assisted chat", f"=Model!B{row['chat_egp']}", "", "2 minutes of agent time in the chat; the wrap-up adds 0.75 min after it from month 4"])
 p.append(["Model cost per assisted chat", f"=Model!B{row['chat_model_each']}", "", "measured"])
 p.append(["Agent cost per contact today", f"=Model!B{row['agent_contact']}", "", "for comparison"])
 p.append(["Year 1 value", f"=Model!B{row['value']}", "", "freed agent capacity: agent chats all year, in-app chat from month 7"])

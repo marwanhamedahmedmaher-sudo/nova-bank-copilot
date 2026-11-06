@@ -216,17 +216,18 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:now
   <h2>Absorb next year's growth without hiring for it</h2>
   <p class="lead">Year 1 is all chat: agents' chats from month 1, then the in-app chat from month 7. Calls join in year 2, once speech-to-text runs in Egypt.</p>
   <div class="grid">
-    <div class="stat"><b>EGP 4.1M</b><span>Year 1 budget: build plus 12 months running</span></div>
+    <div class="stat"><b>EGP 4.2M</b><span>Year 1 budget: build plus 12 months running</span></div>
     <div class="stat"><b>+24%</b><span>chats an agent closes per hour, 5.9 to 7.3</span></div>
-    <div class="stat"><b>Month 14</b><span>the programme pays back; year 2 net EGP 3.9M</span></div>
+    <div class="stat"><b>Month 13</b><span>the programme pays back; year 2 net EGP 4.2M</span></div>
     <div class="stat"><b>18</b><span>hires avoided next year: all of the +15% growth</span></div>
   </div>
   <div class="box"><table>
     <thead><tr><th>Line</th><th class="num">Value</th><th>Basis</th></tr></thead>
     <tbody>
       <tr><td>Chats as a share of in-scope contacts</td><td class="num">29%</td><td>Assumption from our synthetic tickets; the brief gives no split, so the workbook tests 20–50%</td></tr>
-      <tr><td>Minutes saved per assisted chat</td><td class="num">2.0</td><td>Assumption: the copilot writes the reply, about 20% of a 10.2-minute chat, our slowest in-scope contact. The largest field study of AI help for chat agents measured +14% chats per hour on average and +34% for new agents (Brynjolfsson, Li &amp; Raymond, QJE 2025)</td></tr>
-      <tr><td>Agent time saved vs model cost, per assisted chat</td><td class="num">EGP 12 vs 2.5</td><td>2 minutes of agent time against the measured model cost</td></tr>
+      <tr><td>Minutes saved per assisted chat</td><td class="num">2.0</td><td>Assumption, traced screen by screen in our Telos review: about 1.4 minutes as built today and 2.4 once the pilot fixes land, so 2.0 is the middle of a 10.2-minute chat, our slowest in-scope contact. The largest field study of AI help for chat agents measured +14% chats per hour on average and +34% for new agents (Brynjolfsson, Li &amp; Raymond, QJE 2025)</td></tr>
+      <tr><td>After-chat work saved per assisted chat (from month 4)</td><td class="num">0.75 min</td><td>Assumption from the Telos review: a wrap-up the copilot pre-fills turns about 60 seconds of typing into about 15 seconds of checking</td></tr>
+      <tr><td>Agent time saved vs model cost, per assisted chat</td><td class="num">EGP 12 vs 2.9</td><td>2 minutes of agent time in the chat against the measured model cost, at 1.5 drafts a chat (retries, plus drafts started for cases that are reassigned unopened)</td></tr>
       <tr><td>Phase 2 in-app resolution (from month 7)</td><td class="num">30%</td><td>Assumption, conservative against published bank-assistant results</td></tr>
       <tr><td>Calls with a live transcript (year 2)</td><td class="num">1.0 min</td><td>Saved per call, at the floor set by Bank of America's agent assistant; speech-to-text in Egypt assumed at EGP 100k a month</td></tr>
       <tr><td>Agent cost per contact today</td><td class="num">EGP 53</td><td>120 agents × EGP 20,000 fully loaded ÷ 45,000 contacts (assumed, per instructor)</td></tr>
@@ -240,8 +241,9 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:now
       <li>None documents Egyptian Arabic or Franco-Arabic, and all are hosted abroad, which bank secrecy rules out for customer data</li>
     </ul></div>
     <div class="card"><h3>What moves the case</h3><ul>
-      <li>Year 1 is an investment year (net −EGP 0.4M): hosting runs from month 1 while agents' chats save about EGP 75k a month. The in-app chat makes every month positive from month 7</li>
-      <li>In-country hosting is the biggest open cost: EGP 150k a month instead of 250k makes year 1 +EGP 0.8M; 400k makes it −EGP 2.2M</li>
+      <li>Year 1 is an investment year (net −EGP 0.2M): hosting runs from month 1 while agents' chats save about EGP 75k a month, plus about EGP 28k from the pre-filled wrap-up from month 4. The in-app chat makes every month positive from month 7</li>
+      <li>In-country hosting is the biggest open cost: EGP 150k a month instead of 250k makes year 1 +EGP 1.0M; 400k makes it −EGP 2.0M</li>
+      <li>Low case, the console as built today (1.4 minutes, no wrap-up): year 1 −EGP 0.7M, payback month 15. Upside, all pilot fixes (2.4 minutes plus the wrap-up): year 1 breaks even, payback month 12</li>
       <li>If chats are 40% of in-scope contacts instead of 29%, agents' chats save about EGP 104k a month</li>
       <li>Calls need more than about 1.5 minutes saved a call to beat EGP 100k a month of speech-to-text, so the pilot measures that before calls are funded</li>
       <li>Agent cost of EGP 15k instead of 20k cuts the value by 25%; EGP 30k raises it by 50%</li>

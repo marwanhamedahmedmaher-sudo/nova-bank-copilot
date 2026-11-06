@@ -165,6 +165,27 @@
   .critique-item .rec-num.amber { background: #f5a623; }
   .critique-item .rec-num.blue { background: #2196F3; }
 
+  /* Verdict, minute budget, ranking (product-sense pass) */
+  .verdict { padding: 16px 24px; border-bottom: 1px solid #f0f0f0; background: #fffaf0; font-size: 13px; line-height: 1.5; color: #1a1a1a; }
+  .verdict-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #b26a00; margin-bottom: 6px; }
+  table.budget { width: 100%; border-collapse: collapse; font-size: 12px; margin: 4px 0 10px; }
+  table.budget th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #999; font-weight: 700; padding: 4px 6px 6px 0; border-bottom: 1px solid #eee; }
+  table.budget td { padding: 5px 6px 5px 0; border-bottom: 1px solid #f5f5f5; vertical-align: top; color: #333; line-height: 1.4; }
+  table.budget td.sec { text-align: right; font-weight: 700; white-space: nowrap; }
+  table.budget td.sec.plus { color: #2e7d32; }
+  table.budget td.sec.minus { color: #d32f2f; }
+  table.budget tr.group td { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #999; padding-top: 10px; border-bottom: none; }
+  table.budget tr.total td { font-weight: 700; border-top: 2px solid #1a1a1a; border-bottom: none; }
+  .est { font-size: 9px; font-weight: 700; color: #b26a00; background: #fff3e0; padding: 1px 4px; border-radius: 3px; margin-left: 4px; }
+  .phase { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: #1a1a1a; color: #fff; }
+  .phase.pilot { background: #455a64; }
+  .phase.later { background: #b0bec5; color: #263238; }
+  .effort { font-size: 10px; font-weight: 600; color: #777; }
+  .know { font-size: 12px; color: #333; background: #f7f9fb; border-left: 3px solid #2196F3; padding: 5px 9px; margin: 6px 0 8px; line-height: 1.45; }
+  .know b { color: #1565c0; }
+  .kr-item.eng { border-color: #a5d6a7; }
+  .kr-item.eng .kr-tag { color: #a5d6a7; }
+
   /* Footer */
   .critique-footer {
     padding: 16px 24px; display: flex; justify-content: space-between; align-items: center;
@@ -261,10 +282,14 @@
     <div class="kr-header">
       <div class="kr-label">Key Result</div>
       <div class="kr-item ret">
-        <div class="kr-tag">KR 1: Handle time (FCR held)</div>
-        <div class="kr-text">Cut average handle time on dispute, fee and card contacts by at least 1 minute per contact, without lowering first-contact resolution.</div>
+        <div class="kr-tag">KR 1: Handle time</div>
+        <div class="kr-text">Cut handle time on dispute, fee and card chats by 2 minutes per assisted chat, the base case in our business case. EricaAssist's roughly 1 minute is the floor.</div>
       </div>
-      <div class="kr-model">Model: an AI copilot inside Nova Bank's desktop agent console (Egypt), laid out in three columns: queue, conversation with the copilot's draft, and the verified customer's records. It drafts a formal-Arabic reply with a citation on every claim, and only suggests actions that a human must click. Flow: a Franco-Arabic chat asking when a disputed EGP 1,200 comes back. Floor: EricaAssist's roughly 1 minute saved.</div>
+      <div class="kr-item eng">
+        <div class="kr-tag">Guardrails: must not drop</div>
+        <div class="kr-text">First-contact resolution, citation accuracy (eval: 24 of 24 facts, 22 of 24 locations), and acceptance after checking.</div>
+      </div>
+      <div class="kr-model">Model: an AI copilot inside Nova Bank's desktop agent console (Egypt), laid out in three columns: queue, conversation with the copilot's draft, and the verified customer's records. It drafts a formal-Arabic reply with a citation on every claim, and only suggests actions that a human must click. Flow: a Franco-Arabic chat asking when a disputed EGP 1,200 comes back. Phase 1 is chat only. A dispute-status chat takes 13.2 minutes today in our ticket data.</div>
       <div class="kr-flow">
         <span class="flow-tag">Dispute status contact</span>
         <span>6 screens assessed</span>
@@ -288,6 +313,32 @@
     <!-- Critique confidence (filled by `telos-registry set-eval` after --eval; default shows "not scored") -->
     <!--TELOS_EVAL_START--><div style="padding:14px 24px;border-bottom:1px solid #f0f0f0;font-size:12px;color:#999;">Critique confidence not scored yet — run <code>/telos-review … --eval</code> to grade this critique's trustworthiness.</div><!--TELOS_EVAL_END-->
 
+    <div class="verdict">
+      <div class="verdict-label">Verdict for the panel</div>
+      <strong>As built, the copilot wins back about 85 of the 120 seconds the business case counts on</strong>, almost all of it by writing the formal-Arabic reply. Four pilot fixes close the gap, and a pre-filled wrap-up takes it to about 3 minutes. The risk to watch is agents sending drafts they haven't checked.
+    </div>
+
+    <div class="critique-section">
+      <h3><span class="section-icon-blue">=</span> The minute budget</h3>
+      <table class="budget">
+        <tr><th>Seconds per dispute-status chat, compared with no copilot</th><th style="text-align:right">Sec</th></tr>
+        <tr class="group"><td colspan="2">Today, as built</td></tr>
+        <tr><td>Reply drafted: no policy lookup, no typing formal Arabic<span class="est">EST</span></td><td class="sec plus">+150</td></tr>
+        <tr><td>Waiting for the draft (measured 15.75s)</td><td class="sec minus">−16</td></tr>
+        <tr><td>Reading facts three times, checking an English citation list<span class="est">EST</span></td><td class="sec minus">−45</td></tr>
+        <tr><td>Wrong drafts rewritten (1 in 20 × about 90s)<span class="est">EST</span></td><td class="sec minus">−5</td></tr>
+        <tr class="total"><td>Net today: about 1.4 min, 70% of the target</td><td class="sec">+84</td></tr>
+        <tr class="group"><td colspan="2">With the ranked fixes</td></tr>
+        <tr><td>Draft ready when the case opens (rec 11)</td><td class="sec plus">+16</td></tr>
+        <tr><td>One briefing line, citations inside the reply (recs 17 and 18)<span class="est">EST</span></td><td class="sec plus">+25</td></tr>
+        <tr><td>Answered in one turn (recs 12 and 15)<span class="est">EST</span></td><td class="sec plus">+20</td></tr>
+        <tr class="total"><td>Without the wrap-up: about 2.4 min, target met</td><td class="sec">+145</td></tr>
+        <tr><td>Pre-filled wrap-up (rec 13)<span class="est">EST</span></td><td class="sec plus">+45</td></tr>
+        <tr class="total"><td>With everything: about 3.2 min</td><td class="sec">+190</td></tr>
+      </table>
+      <div style="font-size:12px;color:#555;line-height:1.5;">The 2-minute base case sits between today (1.4) and a fixed console (3.2): a defensible middle, with 3 minutes as a fair upside. The business case counts the wrap-up on its own line (0.75 min from month 4): payback month 13, or 15 as built and 12 with every fix. The numbers marked EST are estimates. Validate them in the pilot by timing chats with and without the copilot.</div>
+    </div>
+
     <!-- What serves the KRs -->
     <div class="critique-section">
       <h3><span class="section-icon-green">+</span> What serves the KRs</h3>
@@ -295,7 +346,7 @@
       <div class="critique-item">
         <div class="bullet green"></div>
         <div class="text">
-          <strong>The copilot writes the formal-Arabic reply, which used to be the slowest part of the agent's job.</strong> A Franco-Arabic message comes back as a complete formal-Arabic reply in the respectful plural, with an English gloss. On a chat contact, writing that reply is the biggest block of handle time, and the copilot removes it. This is where the minute can be won.
+          <strong>The copilot writes the formal-Arabic reply, which used to be the slowest part of the agent's job.</strong> A Franco-Arabic message comes back as a complete formal-Arabic reply in the respectful plural, with an English gloss. On a chat contact, writing that reply is the biggest block of handle time, and the copilot removes it. This is where almost all of today's saving comes from, about 150 seconds.
           <span class="screen-ref">04 Draft ready — Suggested reply</span>
           <div class="impact-bar">
             <span class="impact-tag aht">Handle time</span>
@@ -361,7 +412,7 @@
       <div class="critique-item" id="rec-1">
         <div class="rec-num amber">1</div>
         <div class="text">
-          <strong>Every contact starts with a wait of about 16 seconds, and the agent has to trigger it.</strong> The message is already in the case, but nothing happens until "Ask copilot" is clicked, and then screen 03 shows only "Reading policies and this customer's records…". The metrics row records 15.75s. That is a quarter of the one-minute target spent idle, on every contact.
+          <strong>Every contact starts with a wait of about 16 seconds, and the agent has to trigger it.</strong> The message is already in the case, but nothing happens until "Ask copilot" is clicked, and then screen 03 shows only "Reading policies and this customer's records…". The metrics row records 15.75s. That is about 13% of the 2-minute target spent idle, on every chat.
           <span class="screen-ref">02 Case opened → 03 Drafting</span>
           <div class="impact-bar">
             <span class="impact-label high">HIGH IMPACT</span>
@@ -369,7 +420,7 @@
           </div>
           <details class="how">
             <summary>How did I get this?</summary>
-            <div class="how-body">The 15.75s comes from the latency row on screen 04. The draft only starts after the manual "Ask copilot" click on 02, even though the textarea is already filled from the case. The same row reads "Tokens in 2,458 · cached 0 · out 1,239": nothing is cached, and most of the wait is the model writing about 1,200 tokens of reply, gloss, summary and claims before anything appears. On call contacts (4 of the 9 in the queue), the agent must also type what the customer said before clicking, so the cost is higher there. Removing the wait should cut handle time by close to its full length.</div>
+            <div class="how-body">The 15.75s comes from the latency row on screen 04. The draft only starts after the manual "Ask copilot" click on 02, even though the textarea is already filled from the case. The same row reads "Tokens in 2,458 · cached 0 · out 1,239": nothing is cached, and most of the wait is the model writing about 1,200 tokens of reply, gloss, summary and claims before anything appears. Removing the wait should cut handle time by close to its full length.</div>
           </details>
           <div class="telos-comments" data-rec="1"></div>
         </div>
@@ -470,7 +521,7 @@
       <div class="critique-item" id="rec-7">
         <div class="rec-num amber">7</div>
         <div class="text">
-          <strong>The escalation depends on a "today" the agent never sees.</strong> "For you" reasons "as of today (2026-11-07)", while the record says "expected by 2026-11-06", and no screen shows the console's date. Reviewed on 6 November, the reply tells Mariam a deadline "has passed" when it is actually today. The guardrail passes because that date isn't a cited source.
+          <strong>The escalation depends on a "today" the agent never sees.</strong> "For you" reasons "as of today (2026-11-07)", while the record says "expected by 2026-11-06", and no screen shows the console's date. On Demo Day (7 November) the claim is true, but the model works out "has passed" on its own. Run on 6 November, the day it is due, the reply would say the deadline has passed and suggest escalating a day early. The guardrail passes because that date isn't a cited source.
           <span class="screen-ref">04 Draft ready — "For you", claim 4, Suggested actions</span>
           <div class="impact-bar">
             <span class="impact-label medium">MEDIUM IMPACT</span>
@@ -479,7 +530,7 @@
           </div>
           <details class="how">
             <summary>How did I get this?</summary>
-            <div class="how-body">The claim "expected resolution date ... 2026-11-06, which has passed" cites D-1001, which proves the date but not that it has passed. The date it's compared against appears only in the "For you" text. If the console clock is set ahead for Demo Day, this is harmless in the demo. In production, a wrong "overdue" sends needless escalations to Team Leaders and tells customers something untrue, and both come back as contacts.</div>
+            <div class="how-body">The claim "expected resolution date ... 2026-11-06, which has passed" cites D-1001, which proves the date but not that it has passed. The date it's compared against appears only in the "For you" text. This is not a demo bug, because the date is right on 7 November. It is a production risk: when the model gets the date wrong, a wrong "overdue" sends needless escalations to Team Leaders and tells customers something untrue, and both come back as contacts.</div>
           </details>
           <div class="telos-comments" data-rec="7"></div>
         </div>
@@ -502,54 +553,61 @@
           <div class="telos-comments" data-rec="8"></div>
         </div>
       </div>
-    </div>
-
-    <!-- Suggestions -->
-    <div class="critique-section">
-      <h3><span class="section-icon-blue">*</span> Suggestions tied to the KRs</h3>
 
       <div class="critique-item" id="rec-9">
-        <div class="rec-num blue">9</div>
+        <div class="rec-num amber">9</div>
         <div class="text">
-          <strong>Start the draft when the case opens, stream the reply first, and keep Send locked until the checks pass.</strong> Run the copilot when the case is assigned, mark "Draft ready" on the queue card, stream the Arabic reply first, and turn on prompt caching ("cached 0" today). "Ask copilot" becomes regenerate. Nothing is sent until the agent clicks.
+          <strong>Nothing shows whether the agent checked the draft, and the key result rewards not checking.</strong> Send is live the moment the draft lands. A blind send and a carefully checked send both log as "accepted unedited", so acceptance can climb while live citation accuracy goes unmeasured. One confidently wrong reply about a customer's money costs more than the seconds saved on a hundred correct ones.
+          <span class="screen-ref">04 Draft ready · 06 Reply sent</span>
           <div class="impact-bar">
-            <span class="impact-tag aht">Handle time</span>
+            <span class="impact-label high">HIGH IMPACT</span>
+            <span class="impact-tag citation">Citation accuracy</span>
+            <span class="impact-tag accept">Acceptance</span>
           </div>
           <details class="how">
             <summary>How did I get this?</summary>
-            <div class="how-body">This answers rec 1 directly. Pre-generating moves the 15.75s off the agent's clock and into queue time. Streaming means even a draft that wasn't pre-generated is readable within a few seconds, and caching cuts processing time on every request. The agent stays in control because Send stays manual and locked until the checks pass. For calls, pair this with a short capture field or a live transcript so the draft doesn't wait for the agent to finish typing.</div>
+            <div class="how-body">Send has no precondition on 04. The edit report measures how much of each draft agents changed, but there is no event for opening a source. This is automation bias: reliance grows as the tool is right more often, which is exactly when an error slips through. High eval scores make it more likely, not less.</div>
           </details>
           <div class="telos-comments" data-rec="9"></div>
         </div>
       </div>
 
       <div class="critique-item" id="rec-10">
-        <div class="rec-num blue">10</div>
+        <div class="rec-num amber">10</div>
         <div class="text">
-          <strong>Lead with the answer, explain "provisional", and say what happens next.</strong> The reply pattern becomes: (1) "The EGP 1,200 has been in your account since 2 October as a provisional credit"; (2) one line from POL-04 §5 on what makes it permanent or reverses it; (3) the next step and when she'll hear back. Add a heads-up line to "For you" when the customer's words contradict the record, and add this case to the golden eval set.
+          <strong>When the draft is wrong, the agent ends up slower than with no copilot, and this review covers only one of the three intents.</strong> "Flag as wrong" logs a note, then the agent rewrites from scratch, having already spent the wait and the read: about 90 seconds worse than no copilot. Fee and card chats, two-thirds of scope, have failure modes this review hasn't seen.
+          <span class="screen-ref">04 Draft ready — "Flag as wrong" · one intent only</span>
           <div class="impact-bar">
-            <span class="impact-tag fcr">FCR</span>
+            <span class="impact-label medium">MEDIUM IMPACT</span>
             <span class="impact-tag aht">Handle time</span>
+            <span class="impact-tag accept">Acceptance</span>
           </div>
           <details class="how">
             <summary>How did I get this?</summary>
-            <div class="how-body">This answers rec 2 directly. Her literal question is "when?", and the true answer is "already, provisionally". Putting that first answers her in one turn, and explaining the reversal rule up front avoids a surprise later. The heads-up line gives the agent the one sentence to say on a call. Every fact comes from sources the copilot already cites (T00018 and POL-04 §5), so citation accuracy is unaffected.</div>
+            <div class="how-body">The eval passed 40 of 41 cases and placed 22 of 24 citations correctly, so about 1 in 12 citation locations was off. The budget assumes 1 in 20 live drafts is wrong at about 90s each: about 5 seconds per chat. That grows quickly if accuracy slips on fee or card chats.</div>
           </details>
           <div class="telos-comments" data-rec="10"></div>
         </div>
       </div>
+    </div>
+
+    <!-- Suggestions -->
+    <div class="critique-section">
+      <h3><span class="section-icon-blue">*</span> Suggestions, ranked by impact and effort</h3>
 
       <div class="critique-item" id="rec-11">
         <div class="rec-num blue">11</div>
         <div class="text">
-          <strong>Put the suggested action next to Send, and make the reply match what the agent actually did.</strong> When the agent clicks "Send for approval", change the closing line from an offer to a statement ("I have asked a supervisor to review your dispute; you will hear by &lt;date&gt;"). If the agent sends without requesting it, keep an "Escalation offered, not requested" marker. These stay two human clicks, and nothing runs automatically.
+          <strong>Start the draft when the case opens, stream the reply first, and keep Send locked until the checks pass.</strong> Run the copilot when the case is assigned, mark "Draft ready" on the queue card, stream the Arabic reply first, and turn on prompt caching ("cached 0" today). "Ask copilot" becomes regenerate. Nothing is sent until the agent clicks.
+          <div class="know"><b>How we'll know:</b> Seconds from case open to Send. The draft wait on the agent's clock should drop to about 0.</div>
           <div class="impact-bar">
+            <span class="phase pilot">Pilot</span>
+            <span class="effort">High impact · low effort</span>
             <span class="impact-tag aht">Handle time</span>
-            <span class="impact-tag fcr">FCR</span>
           </div>
           <details class="how">
             <summary>How did I get this?</summary>
-            <div class="how-body">This answers rec 3 directly. When the reply reports an action already requested, the "yes please" round-trip disappears. Keeping two clicks preserves the suggestions-only rule and the Team Leader approval, and the marker covers the forgotten offer seen on screen 06. The date in the statement must come from the policy SLA, not from the model.</div>
+            <div class="how-body">This answers rec 1 directly. Pre-generating moves the 15.75s off the agent's clock and into queue time. Streaming means even a draft that wasn't pre-generated is readable within a few seconds, and caching cuts processing time on every request. The agent stays in control because Send stays manual and locked until the checks pass.</div>
           </details>
           <div class="telos-comments" data-rec="11"></div>
         </div>
@@ -558,15 +616,17 @@
       <div class="critique-item" id="rec-12">
         <div class="rec-num blue">12</div>
         <div class="text">
-          <strong>Replace the toast with a pre-filled wrap-up card that closes the case in one click.</strong> After Send, add the sent message to the conversation, lock Send, and pre-fill the intent, D-1001, actions requested, the complaint flag with a CBE reference, and a two-line note. "Close and next" opens the next case with its draft waiting. After-call work turns from typing into checking.
+          <strong>Lead with the answer, explain "provisional", and say what happens next.</strong> The reply pattern becomes: (1) "The EGP 1,200 has been in your account since 2 October as a provisional credit"; (2) one line from POL-04 §5 on what makes it permanent or reverses it; (3) the next step and when she'll hear back. Add a heads-up line to "For you" when the customer's words contradict the record, and add this case to the golden eval set.
+          <div class="know"><b>How we'll know:</b> Repeat contacts within 7 days on dispute chats, and the new golden-set case passes.</div>
           <div class="impact-bar">
-            <span class="impact-tag acw">After-call work</span>
-            <span class="impact-tag aht">Handle time</span>
+            <span class="phase ">Before Demo Day</span>
+            <span class="effort">High impact · low effort</span>
             <span class="impact-tag fcr">FCR</span>
+            <span class="impact-tag aht">Handle time</span>
           </div>
           <details class="how">
             <summary>How did I get this?</summary>
-            <div class="how-body">This answers rec 4 directly. Every wrap-up field already exists in the draft response: the intent tag, claims, actions and flags. Pre-filling them adds no new model work and removes typing from after-call work, the part of handle time this flow currently ignores. Registering the complaint in the same step meets the CBE 2-working-day reference rule and stops it coming back as a new contact. "Close and next", combined with pre-generated drafts, carries the time saved from one contact to the next.</div>
+            <div class="how-body">This answers rec 2 directly. Her literal question is "when?", and the true answer is "already, provisionally". Putting that first answers her in one turn, and explaining the reversal rule up front avoids a surprise later. The heads-up line gives the agent the one sentence to say on a call. Every fact comes from sources the copilot already cites (T00018 and POL-04 §5), so citation accuracy is unaffected.</div>
           </details>
           <div class="telos-comments" data-rec="12"></div>
         </div>
@@ -575,14 +635,18 @@
       <div class="critique-item" id="rec-13">
         <div class="rec-num blue">13</div>
         <div class="text">
-          <strong>Cut the column down to one briefing line, the reply, and one line of checks.</strong> Shrink "For you" to the key fact and the recommended step, collapse the English gloss by default, replace the nine guardrail rows with "9/9 checks passed" (expanding on any failure), and hide the duplicate textarea on chat cases. Send and the action then sit above the fold.
+          <strong>Replace the toast with a pre-filled wrap-up card that closes the case in one click.</strong> After Send, add the sent message to the conversation, lock Send, and pre-fill the intent, D-1001, actions requested, the complaint flag with a CBE reference, and a two-line note. "Close and next" opens the next case with its draft waiting (rec 11). After-call work turns from typing into checking.
+          <div class="know"><b>How we'll know:</b> After-call seconds per chat, and complaints referenced within 2 working days.</div>
           <div class="impact-bar">
+            <span class="phase pilot">Pilot</span>
+            <span class="effort">High impact · medium effort</span>
+            <span class="impact-tag acw">After-call work</span>
             <span class="impact-tag aht">Handle time</span>
-            <span class="impact-tag accept">Acceptance</span>
+            <span class="impact-tag fcr">FCR</span>
           </div>
           <details class="how">
             <summary>How did I get this?</summary>
-            <div class="how-body">This answers rec 5 directly. Each change removes a block the agent reads or scrolls past on every contact, and nothing is lost: the gloss and the checks are one click away, and failures still demand attention. A shorter "For you" and no default gloss also mean fewer output tokens, which helps the latency in rec 1.</div>
+            <div class="how-body">This answers rec 4 directly. Every wrap-up field already exists in the draft response: the intent tag, claims, actions and flags. Pre-filling them adds no new model work and removes typing from after-call work, the part of handle time this flow currently ignores. Registering the complaint in the same step meets the CBE 2-working-day reference rule and stops it coming back as a new contact. "Close and next", combined with pre-generated drafts, carries the time saved from one contact to the next.</div>
           </details>
           <div class="telos-comments" data-rec="13"></div>
         </div>
@@ -591,15 +655,17 @@
       <div class="critique-item" id="rec-14">
         <div class="rec-num blue">14</div>
         <div class="text">
-          <strong>Put numbered citation markers inside the Arabic reply.</strong> After each sentence, show a small chip ([1], [2] and so on) linked to its claim. Hovering it highlights the record row or opens the policy excerpt, the way the POL-04 §5 chip does today. Remove duplicate chips. The agent checks each sentence where they're reading it.
+          <strong>Log whether the agent opened a source before sending, and spot-check the blind sends.</strong> Record a "source opened" event, report "sent unedited, no source opened" next to acceptance, and have QA spot-check a weekly sample. Don't force a click before Send: that adds time and trains agents to click without looking.
+          <div class="know"><b>How we'll know:</b> The blind-send share next to acceptance. If both rise together, that is a warning, not a win.</div>
           <div class="impact-bar">
+            <span class="phase pilot">Pilot</span>
+            <span class="effort">High impact · low effort</span>
             <span class="impact-tag citation">Citation accuracy</span>
             <span class="impact-tag accept">Acceptance</span>
-            <span class="impact-tag aht">Handle time</span>
           </div>
           <details class="how">
             <summary>How did I get this?</summary>
-            <div class="how-body">This answers rec 6 directly. The agent no longer translates between an English list and the Arabic text to check a claim. Row highlighting and the policy panel already exist on screens 04 and 05, so this reuses them. Faster checks should raise both the share of drafts checked and the acceptance rate.</div>
+            <div class="how-body">This answers rec 9 directly. The audit log and edit report already exist, so this is one event and one column. Spot-checks measure live citation accuracy, which the eval set can't cover.</div>
           </details>
           <div class="telos-comments" data-rec="14"></div>
         </div>
@@ -608,14 +674,17 @@
       <div class="critique-item" id="rec-15">
         <div class="rec-num blue">15</div>
         <div class="text">
-          <strong>Calculate deadlines in code, show the reference date, and cite it.</strong> Show "Today: 6 Nov 2026" in the console. Have the backend work out "overdue by N days" or "due today" and pass it in as a cited fact. Suggest escalation only once the expected date has actually passed, and say "due today" when it hasn't.
+          <strong>Put the suggested action next to Send, and make the reply match what the agent actually did.</strong> When the agent clicks "Send for approval", change the closing line from an offer to a statement ("I have asked a supervisor to review your dispute; you will hear by &lt;date&gt;"). If the agent sends without requesting it, keep an "Escalation offered, not requested" marker. These stay two human clicks, and nothing runs automatically.
+          <div class="know"><b>How we'll know:</b> Chat turns per dispute contact, and "offered, not requested" markers.</div>
           <div class="impact-bar">
-            <span class="impact-tag citation">Citation accuracy</span>
+            <span class="phase pilot">Pilot</span>
+            <span class="effort">High impact · medium effort</span>
+            <span class="impact-tag aht">Handle time</span>
             <span class="impact-tag fcr">FCR</span>
           </div>
           <details class="how">
             <summary>How did I get this?</summary>
-            <div class="how-body">This answers rec 7 directly. Calculating the deadline in code removes a whole class of model error, and citing the result lets the "Numbers match the sources" guardrail cover the claim that triggers the escalation. A visible reference date lets the agent confirm it at a glance and keeps unneeded escalations away from Team Leaders.</div>
+            <div class="how-body">This answers rec 3 directly. When the reply reports an action already requested, the "yes please" round-trip disappears. Keeping two clicks preserves the suggestions-only rule and the Team Leader approval, and the marker covers the forgotten offer seen on screen 06. The date in the statement must come from the policy SLA, not from the model.</div>
           </details>
           <div class="telos-comments" data-rec="15"></div>
         </div>
@@ -624,8 +693,88 @@
       <div class="critique-item" id="rec-16">
         <div class="rec-num blue">16</div>
         <div class="text">
-          <strong>Put the demo features behind a demo-mode switch.</strong> Keep "Try to break it." and the latency, cost and token row for the Demo Day panel, behind a demo flag or a supervisor/QA view. In the agent build, send cost and latency to an analytics dashboard. The panel needs to see cost and robustness; agents need to see the customer.
+          <strong>Calculate deadlines in code, show the reference date, and cite it.</strong> Show today's date in the console. Have the backend work out "overdue by N days" or "due today" and pass it in as a cited fact. Suggest escalation only once the expected date has actually passed, and say "due today" when it hasn't.
+          <div class="know"><b>How we'll know:</b> Escalations Team Leaders send back as not yet due.</div>
           <div class="impact-bar">
+            <span class="phase pilot">Pilot</span>
+            <span class="effort">Medium impact · low effort</span>
+            <span class="impact-tag citation">Citation accuracy</span>
+            <span class="impact-tag fcr">FCR</span>
+          </div>
+          <details class="how">
+            <summary>How did I get this?</summary>
+            <div class="how-body">This answers rec 7 directly. Calculating the deadline in code removes a whole class of model error, and citing the result lets the "Numbers match the sources" guardrail cover the claim that triggers the escalation. A visible reference date lets the agent confirm it at a glance and keeps unneeded escalations away from Team Leaders.</div>
+          </details>
+          <div class="telos-comments" data-rec="16"></div>
+        </div>
+      </div>
+
+      <div class="critique-item" id="rec-17">
+        <div class="rec-num blue">17</div>
+        <div class="text">
+          <strong>Cut the column down to one briefing line, the reply, and one line of checks.</strong> Shrink "For you" to the key fact and the recommended step, collapse the English gloss by default, replace the nine guardrail rows with "9/9 checks passed" (expanding on any failure), and hide the duplicate textarea on chat cases. Send and the action then sit above the fold.
+          <div class="know"><b>How we'll know:</b> Seconds from the draft appearing to Send.</div>
+          <div class="impact-bar">
+            <span class="phase pilot">Pilot</span>
+            <span class="effort">Medium impact · low effort</span>
+            <span class="impact-tag aht">Handle time</span>
+            <span class="impact-tag accept">Acceptance</span>
+          </div>
+          <details class="how">
+            <summary>How did I get this?</summary>
+            <div class="how-body">This answers rec 5 directly. Each change removes a block the agent reads or scrolls past on every contact, and nothing is lost: the gloss and the checks are one click away, and failures still demand attention. A shorter "For you" and no default gloss also mean fewer output tokens, which helps the latency in rec 1.</div>
+          </details>
+          <div class="telos-comments" data-rec="17"></div>
+        </div>
+      </div>
+
+      <div class="critique-item" id="rec-18">
+        <div class="rec-num blue">18</div>
+        <div class="text">
+          <strong>Put numbered citation markers inside the Arabic reply.</strong> After each sentence, show a small chip ([1], [2] and so on) linked to its claim. Hovering it highlights the record row or opens the policy excerpt, the way the POL-04 §5 chip does today. Remove duplicate chips. The agent checks each sentence where they're reading it.
+          <div class="know"><b>How we'll know:</b> Share of drafts with a source opened, and the flagged-wrong rate.</div>
+          <div class="impact-bar">
+            <span class="phase pilot">Pilot</span>
+            <span class="effort">Medium impact · medium effort</span>
+            <span class="impact-tag citation">Citation accuracy</span>
+            <span class="impact-tag accept">Acceptance</span>
+            <span class="impact-tag aht">Handle time</span>
+          </div>
+          <details class="how">
+            <summary>How did I get this?</summary>
+            <div class="how-body">This answers rec 6 directly. The agent no longer translates between an English list and the Arabic text to check a claim. Row highlighting and the policy panel already exist on screens 04 and 05, so this reuses them. Faster checks should raise both the share of drafts checked and the acceptance rate.</div>
+          </details>
+          <div class="telos-comments" data-rec="18"></div>
+        </div>
+      </div>
+
+      <div class="critique-item" id="rec-19">
+        <div class="rec-num blue">19</div>
+        <div class="text">
+          <strong>Let the agent correct a draft in one line, and review the fee and card flows next.</strong> Give "Flag as wrong" a one-line correction box that returns a corrected draft, so a wrong draft costs one round-trip instead of a rewrite. Then run Telos on a fee-waiver chat and a card-replacement chat.
+          <div class="know"><b>How we'll know:</b> Handle time on flagged drafts compared with unassisted chats. It should never be higher.</div>
+          <div class="impact-bar">
+            <span class="phase later">Later</span>
+            <span class="effort">Medium impact · medium effort</span>
+            <span class="impact-tag aht">Handle time</span>
+            <span class="impact-tag accept">Acceptance</span>
+          </div>
+          <details class="how">
+            <summary>How did I get this?</summary>
+            <div class="how-body">This answers rec 10 directly. A correction loop turns the worst case from "slower than no copilot" into "a little faster". The note also becomes labelled eval data.</div>
+          </details>
+          <div class="telos-comments" data-rec="19"></div>
+        </div>
+      </div>
+
+      <div class="critique-item" id="rec-20">
+        <div class="rec-num blue">20</div>
+        <div class="text">
+          <strong>Put the demo features behind a demo-mode switch.</strong> Keep "Try to break it." and the latency, cost and token row for the Demo Day panel, behind a demo flag or a supervisor/QA view. In the agent build, send cost and latency to an analytics dashboard. The panel needs to see cost and robustness; agents need to see the customer.
+          <div class="know"><b>How we'll know:</b> Acceptance in the pilot with the demo row hidden.</div>
+          <div class="impact-bar">
+            <span class="phase later">After Demo Day</span>
+            <span class="effort">Medium impact · low effort</span>
             <span class="impact-tag accept">Acceptance</span>
             <span class="impact-tag aht">Handle time</span>
           </div>
@@ -633,7 +782,7 @@
             <summary>How did I get this?</summary>
             <div class="how-body">This answers rec 8 directly. The demo still shows the business-case evidence (cost per draft feeds the business case workbook), but agents in production aren't prompted to ration the tool or try to break it. That protects the acceptance rate the handle-time saving depends on.</div>
           </details>
-          <div class="telos-comments" data-rec="16"></div>
+          <div class="telos-comments" data-rec="20"></div>
         </div>
       </div>
     </div>
@@ -649,7 +798,7 @@
 
     <div class="critique-footer">
       <span>Open cases → Reply sent (6 screens)</span>
-      <span>2026-11-06</span>
+      <span>2026-11-06 · revised: 2-min KR, minute budget, recs 9–10, ranked fixes</span>
     </div>
 
   </div>

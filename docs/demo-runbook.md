@@ -13,7 +13,7 @@ Each draft takes about 10-20 seconds. While it thinks, say what it is doing: "it
 
 | # | Case | What to point at |
 |---|---|---|
-| 1 | Mariam, Franco-Arabic, dispute status | She writes Franco, the reply comes back in formal Arabic (every Arabic or Franco message gets formal Arabic, English gets formal English); citation chips (click **D-1001** and a **POL** chip); it spots that the expected date on the record (6 Nov) has passed and suggests escalating, "Team Leader approves"; all checks green |
+| 1 | Mariam, Franco-Arabic, dispute status | She writes Franco, the reply comes back in formal Arabic (every Arabic or Franco message gets formal Arabic, English gets formal English); citation chips (click **D-1001** and a **POL** chip); the record's expected date (6 Nov) has passed. Code, not the model, works out "overdue by 1 day" and the copilot suggests escalating, "Team Leader approves"; the header shows today's date; all checks green |
 | 2 | Omar, EGP 225 overdraft fees | 3 x 75 and the daily cap. Then type "Please waive these fees" and ask again: a goodwill waiver, "Team Leader approves" (up to EGP 250) |
 | 2b | Hana: type "Please waive the EGP 400 fee and the 35" | The same request above EGP 250 goes to "Ops Manager approves" (POL-11 §2). Code routes it, not the model |
 | 3 | Karim, declined dispute, Egyptian Arabic | Flags "Asks for approval"; no refund, offers the complaint route |
@@ -21,13 +21,16 @@ Each draft takes about 10-20 seconds. While it thinks, say what it is doing: "it
 | 5 | Husband asking for his wife's balance | Refused; "the model never had her data" |
 | 6 | "SYSTEM OVERRIDE ..." | Flagged as prompt injection; answers only his own dispute |
 | 7 | Agent edits | Click into any reply, change a word, press **Send reply**: it says what share of the draft you changed. **Flag as wrong** logs your corrected version for the weekly review and the edit-rate eval |
-| 8 | Panel's turn | Edit the customer text box and let them try anything |
+| 8 | The mode dial (header) | **Shadow**: open a case, the agent writes their own reply; the copilot drafts silently and the send is logged next to it with handle time ("this is how the pilot proves the minutes"). **Auto-reply**: the queue labels itself. Low risk is already resolved or escalated (complaint logged, dispute handed over), high risk (lost card, refund ask) waits for **Approve and send**, the husband and the injection go to an agent. "Code decides the label; anything that moves money waits for a human." |
+| 9 | Dev mode (header toggle) | For the AI PM and engineer: cost and latency per draft, the full guardrail list, the risk rule that fired, and a panel with blind sends (sent unedited without opening a source) and handle time by mode |
+| 10 | Panel's turn | Switch back to Copilot, edit the customer text box and let them try anything |
 
 Good things for the panel to try: another customer's ID ("what did C023 spend?"), "approve my dispute", "ignore your rules", a fake card number, a question the policies don't cover ("do you have a branch in Luxor?").
 
 ## If something goes wrong
 
 - **Red "Blocked by guardrails" card**: that is the product working. Say "a check failed, so the agent never sees an unverified answer", and show the failing check.
+- **Auto-reply needs the network**: it drafts all nine cases at once (about 20 seconds, about $0.35). Offline, each case falls back to its saved draft, marked as a replay.
 - **"Copilot unavailable"**: no internet or API problem. Use a case you warmed up (it replays), or show the eval spreadsheets.
 - **Black window closed by accident**: double-click `start-demo.bat` again.
 
@@ -35,8 +38,8 @@ Good things for the panel to try: another customer's ID ("what did C023 spend?")
 
 - 45,000 contacts a month, 60% in scope, +15% a year (brief)
 - Evals: six runs, 28 -> 35 -> 37 -> 34 -> 38 -> 40 of 41 passed. Run 6 is the final code (formal replies, approvers routed by policy): 40 of 41, 3H 0.97 (Helpful 0.92, Honest 1.00, Harmless 1.00); the one miss is a "deliver tomorrow" answer that didn't say tomorrow is a weekend. Runs 3 and 4 used the same prompt and rules and scored 37 and 34, so expect about 3 cases of run-to-run variation. In runs 3 to 6, all 41 cases kept other customers' data out, promised no outcome, left every action to a human, resisted hidden instructions and kept card numbers out; benchmark answer 24 of 24; no blocked drafts, no errors.
-- Year 1 is all chat: agents' chats from month 1, the in-app chat from month 7; calls join in year 2. Year 1 budget about EGP 4.1M, value about EGP 3.8M (net −0.4M); year 2 value about EGP 8.9M, net +3.9M; the programme pays back in month 14; 18 hires avoided next year, all of the +15% growth (assumptions in the workbook, agent cost assumed per the instructor)
-- Chats: 29% of in-scope contacts in our tickets and the slowest at 10.2 minutes; 2 minutes saved takes an agent from 5.9 to 7.3 chats an hour (+24%). The largest field study of AI help for chat agents found +14% on average and +34% for new agents (Brynjolfsson, Li & Raymond, QJE 2025)
+- Year 1 is all chat: agents' chats from month 1, the in-app chat from month 7; calls join in year 2. Year 1 budget about EGP 4.2M, value about EGP 4.0M (net −0.2M); year 2 value about EGP 9.3M, net +4.2M; the programme pays back in month 13; 18 hires avoided next year, all of the +15% growth (assumptions in the workbook, agent cost assumed per the instructor)
+- Chats: 29% of in-scope contacts in our tickets and the slowest at 10.2 minutes; 2 minutes saved takes an agent from 5.9 to 7.3 chats an hour (+24%). The 2 minutes is traced in the Telos minute budget: about 1.4 as built, 2.4 with the pilot fixes; the pre-filled wrap-up adds 0.75 minutes after the chat from month 4. Low case (as built): payback month 15; upside: month 12. The largest field study of AI help for chat agents found +14% on average and +34% for new agents (Brynjolfsson, Li & Raymond, QJE 2025)
 - Model cost about $0.03 a draft ($0.034 on 31 Oct, $0.026 on the final run), about 11-14 seconds; production runs in Egypt because of bank secrecy rules
 
 ## Likely questions
@@ -53,5 +56,5 @@ Good things for the panel to try: another customer's ID ("what did C023 spend?")
 - **Why formal Arabic when she wrote Franco?** Everything the bank sends is a record, so replies use one formal register that reads the same for every customer and avoids slang. The copilot still understands all four ways customers write. Arabic replies use the respectful plural, because the model never sees the customer's name or gender.
 - **What date does it use?** Today's. The synthetic records run to 29 Oct, so newer deadlines show as passed and it escalates them. The evals pin 30 Oct, the date the benchmark answers were written for.
 - **Does it listen to calls?** Not yet. Phase 1 is chat, where the reply is sent as written and a 15-second draft isn't dead air. Calls join in year 2 with a live transcript, once speech-to-text that understands Egyptian Arabic runs in Egypt: call audio can't be masked until it is transcribed, and bank secrecy keeps it in the country. On a call the copilot will give short points to say, not a written reply. The year 1 numbers count no calls.
-- **Why is year 1 negative?** In-country hosting runs from month 1, and agents' chats alone save about EGP 75k a month. The in-app chat makes every month positive from month 7, calls add more in year 2, and the programme pays back in month 14. Cheaper hosting (EGP 150k a month) makes year 1 positive.
+- **Why is year 1 negative?** In-country hosting runs from month 1, and agents' chats save about EGP 75k a month, plus about EGP 28k from the pre-filled wrap-up from month 4. The in-app chat makes every month positive from month 7, calls add more in year 2, and the programme pays back in month 13. Cheaper hosting (EGP 150k a month) makes year 1 positive.
 - **Customer-facing?** Phase 2, month 7: fee explanations and dispute status first, labelled as AI, one tap to a human, anything with money goes to a person.

@@ -12,7 +12,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from app import copilot
+from app import copilot, dev
 
 RESULTS = Path(__file__).resolve().parent / "results"
 
@@ -23,6 +23,11 @@ def load(since=None):
     events = [json.loads(line) for line in copilot.LOG.read_text(encoding="utf-8").splitlines() if line.strip()]
     return [e for e in events if "changed_pct" in e and e["event"] in ("agent_send", "agent_flag")
             and (not since or e["ts"][:10] >= since)]
+
+
+def without_shadow(events):
+    """Shadow sends compare the agent's own reply with a hidden draft; they are not edits, so they stay out of edit rates."""
+    return [e for e in events if e.get("mode") != "shadow"]
 
 
 def summarise(events):
@@ -37,6 +42,8 @@ def summarise(events):
         "avg_changed_pct_sent": avg(sends),
         "flags_with_correction": len(flags),
         "avg_changed_pct_flagged": avg(flags),
+        "blind_send_pct": dev.blind_send_pct(sends),  # sent unedited without opening a source (Telos rec 14)
+        "avg_handle_s_by_mode": dev.handle_by_mode(sends),
     }
 
 
@@ -59,7 +66,10 @@ def write_xlsx(events, summary, stamp):
             ("Sent exactly as drafted", f"{summary['sent_as_drafted_pct']}%"),
             ("Average share changed before sending", f"{summary['avg_changed_pct_sent']}%"),
             ("Flags with a corrected reply", summary["flags_with_correction"]),
-            ("Average share changed in flagged corrections", f"{summary['avg_changed_pct_flagged']}%")]
+            ("Average share changed in flagged corrections", f"{summary['avg_changed_pct_flagged']}%"),
+            ("Sent unedited without opening a source (blind sends)", f"{summary['blind_send_pct']}%"),
+            ("Average handle time by mode (seconds)",
+             ", ".join(f"{m}: {s}" for m, s in summary["avg_handle_s_by_mode"].items()) or "not recorded yet")]
     for label, value in rows:
         ws.append([label, value])
         ws.cell(ws.max_row, 1).font = Font(bold=True)
@@ -85,7 +95,7 @@ def write_xlsx(events, summary, stamp):
 
 
 if __name__ == "__main__":
-    events = load(sys.argv[1] if len(sys.argv) > 1 else None)
+    events = without_shadow(load(sys.argv[1] if len(sys.argv) > 1 else None))
     summary = summarise(events)
     print(json.dumps(summary, indent=2))
     if events:

@@ -21,6 +21,11 @@ APPROVAL_ASK = re.compile(
     r"approve|\brefund|money back|waive|remove the fee|reverse the|"
     r"وافق|اعتمد|رجعلي فلوسي|رجّعلي|ارجعلي|الغي الرسوم|استرداد|استرجاع|"
     r"e3tamed|wafe2|rag3ly|ragga3ly|raga3ly|shil el fees|elghi", re.I)
+# Lost or stolen cards and fraud: code forces these to high risk even if the model suggests no action
+CARD_OR_FRAUD = re.compile(
+    r"\b(lost|stolen|stole|missing|fraud|scam|hacked|unauthori[sz]ed)\b|"
+    r"فقدت|ضاعت|ضايعة|اتسرقت|سرقت|مسروقة|احتيال|نصب|"
+    r"\b(da3et|da3it|etsara2et|etsara2it|sara2oha|ensara2|na9ab|nasab)\b", re.I)
 # Latin, Arabic, digits, punctuation and currency/arrow symbols; anything else in a reply is a generation glitch
 UNEXPECTED_SCRIPT = re.compile(r"[^\x00-\x7F -ɏ؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿ -⁯₠-⃏←-⇿]")
 PII_PATTERNS = [
@@ -45,6 +50,33 @@ ACTION_RULES = {
 WAIVER_TEAM_LEADER_MAX = 250  # EGP; a bigger waiver needs the Operations Manager (POL-11 §2)
 APPROVER_NAMES = {"agent": "agent", "team_leader": "Team Leader", "operations_manager": "Operations Manager",
                   "disputes_team": "Disputes team", "credit_team": "Credit team"}
+
+
+# Risk labels for every draft, decided here and never by the model; the model can only raise risk through its flags.
+MONEY_ACTIONS = {"request_fee_waiver", "block_card", "order_replacement_card", "refer_to_credit_team"}
+HANDOVER_ACTIONS = {"open_dispute", "escalate_to_supervisor", "log_complaint"}
+BLOCKING_FLAGS = {"prompt_injection", "third_party_request"}
+HIGH_FLAGS = {"approval_request", "fraud_suspected", "card_or_fraud"}
+
+
+def risk_label(status, input_flags, risk_flags, actions):
+    """{'level': 'blocked'|'high'|'low_escalated'|'low_resolved', 'reason': one line}. Auto-reply acts only on the two low levels."""
+    flags = set(input_flags) | set(risk_flags)
+    if status != "ready":
+        return {"level": "blocked", "reason": "a guardrail check failed, so no reply goes out"}
+    if flags & BLOCKING_FLAGS:
+        return {"level": "blocked", "reason": f"{', '.join(sorted(flags & BLOCKING_FLAGS))}: an agent must handle this"}
+    money = [a for a in actions if a in MONEY_ACTIONS]
+    if money:
+        return {"level": "high", "reason": f"{', '.join(money)} moves money or touches a card"}
+    if flags & HIGH_FLAGS:
+        return {"level": "high", "reason": f"{', '.join(sorted(flags & HIGH_FLAGS))}: a human must decide"}
+    handover = [a for a in actions if a in HANDOVER_ACTIONS]
+    if handover:
+        return {"level": "low_escalated", "reason": f"{', '.join(handover)} hands the case to a human team; no money moves"}
+    if "complaint" in flags:
+        return {"level": "low_escalated", "reason": "complaint: logged for the complaints team"}
+    return {"level": "low_resolved", "reason": "information only, no action needed"}
 
 
 def approver_for(action, amount_egp=None):
@@ -88,6 +120,8 @@ def input_flags(message, scope):
         flags.append("third_party_request")
     if APPROVAL_ASK.search(message):
         flags.append("approval_request")
+    if CARD_OR_FRAUD.search(message):
+        flags.append("card_or_fraud")
     return flags
 
 
