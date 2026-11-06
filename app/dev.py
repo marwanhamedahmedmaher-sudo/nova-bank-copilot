@@ -1,0 +1,48 @@
+"""Numbers for the AI PM and AI engineer (dev mode), read from the audit log."""
+import json
+from collections import Counter, defaultdict
+
+from . import copilot
+
+
+def events():
+    if not copilot.LOG.exists():
+        return []
+    return [json.loads(line) for line in copilot.LOG.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def blind_send_pct(sends):
+    """Share of sends that went out unedited without the agent opening a single source (Telos rec 14).
+    Only sends that record sources_opened count, so older log lines don't skew it."""
+    tracked = [e for e in sends if "sources_opened" in e]
+    blind = [e for e in tracked if not e.get("edited") and not e["sources_opened"]]
+    return round(100 * len(blind) / len(tracked), 1) if tracked else 0.0
+
+
+def handle_by_mode(sends):
+    times = defaultdict(list)
+    for e in sends:
+        if e.get("handle_s") is not None:
+            times[e.get("mode", "copilot")].append(e["handle_s"])
+    return {m: round(sum(v) / len(v), 1) for m, v in times.items()}
+
+
+def summary(evs=None):
+    evs = events() if evs is None else evs
+    drafts = [e for e in evs if e["event"] == "suggestion"]
+    sends = [e for e in evs if e["event"] == "agent_send"]
+    assisted = [e for e in sends if e.get("mode") != "shadow"]  # a shadow send is the agent's own reply, not an edit
+    avg = lambda xs, k: round(sum(e[k] for e in xs) / len(xs), 4 if k == "cost_usd" else 1) if xs else 0
+    outcomes = Counter(e["outcome"] for e in evs if e["event"] == "auto_outcome")
+    return {
+        "drafts": len(drafts),
+        "avg_latency_s": avg(drafts, "latency_s"),
+        "avg_cost_usd": avg(drafts, "cost_usd"),
+        "blocked": sum(e["status"] == "blocked" for e in drafts),
+        "sends_by_mode": dict(Counter(e.get("mode", "copilot") for e in sends)),
+        "blind_send_pct": blind_send_pct(assisted),
+        "avg_handle_s_by_mode": handle_by_mode(sends),
+        "edit_share_pct": avg([e for e in assisted if "changed_pct" in e], "changed_pct"),
+        "auto": {k: outcomes.get(k, 0) for k in ("resolved", "escalated", "awaiting_approval", "needs_agent")},
+        "source_opens": sum(e["event"] == "source_opened" for e in evs),
+    }

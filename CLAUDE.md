@@ -31,7 +31,9 @@ Phase 2 (roadmap): the same engine goes customer-facing in the app for the lowes
 - Console: `.venv\Scripts\python -m uvicorn app.main:app --port 8000`, then open http://localhost:8000
 - One case from the command line: `.venv\Scripts\python -m app.copilot CASE-101`
 - Evals (golden set, writes both course spreadsheets to `evals/results/`): `.venv\Scripts\python -m evals.run_evals`
-- Agent edit report (share of each draft agents changed when sending or flagging, from the audit log): `.venv\Scripts\python -m evals.edit_report [YYYY-MM-DD]`
+- Agent edit report (share of each draft agents changed when sending or flagging, blind sends, handle time by mode, from the audit log): `.venv\Scripts\python -m evals.edit_report [YYYY-MM-DD]`
+- Tests (no API calls; install once with `.venv\Scripts\python -m pip install -r requirements-dev.txt`): `.venv\Scripts\python -m pytest -q`
+- Console modes (header): Shadow (copilot drafts silently, agent replies), Copilot (Phase 1), Auto-reply (Phase 2 preview: risk labels from `guards.risk_label`; low risk resolved or escalated, high risk waits for approval). Dev mode toggle shows cost, guardrails, risk rule and the dev panel.
 - Business case workbook: `.venv\Scripts\python demo\business_case.py <measured USD per draft>`
 
 ## Research findings that shape the design (30 Oct, see `research/`)

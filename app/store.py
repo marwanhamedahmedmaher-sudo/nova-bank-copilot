@@ -3,6 +3,7 @@ which is bound to one verified customer and cannot see anyone else (POL-17 §5).
 import csv
 import json
 import re
+from datetime import date
 from functools import lru_cache
 from pathlib import Path
 
@@ -68,12 +69,23 @@ def policies_prompt_text():
     return "\n\n".join(p["raw"].strip() for p in policies().values())
 
 
+def deadline_status(expected, today):
+    """Worked out in code, not by the model (Telos rec 16): 'due today', 'overdue by N days' or 'due in N days'."""
+    days = (date.fromisoformat(today) - date.fromisoformat(expected)).days
+    if days == 0:
+        return "due today"
+    n = abs(days)
+    unit = "day" if n == 1 else "days"
+    return f"overdue by {n} {unit}" if days > 0 else f"due in {n} {unit}"
+
+
 class CustomerScope:
     """Everything the copilot may know about one customer. Built server-side from the case,
     never from anything the model or the customer message asks for."""
 
-    def __init__(self, customer_id):
+    def __init__(self, customer_id, today=None):
         self.customer_id = customer_id
+        self.today = today  # set by the copilot, so dispute lines carry a deadline status computed in code
         self.customer = customers()[customer_id]
         self.transactions = [t for t in _transactions() if t["customer_id"] == customer_id]
         self.disputes = [d for d in _disputes() if d["customer_id"] == customer_id]
@@ -104,6 +116,9 @@ class CustomerScope:
                                       f"reason: {d['reason']} | opened {d['opened']} | stage: {d['stage']} | "
                                       f"last update {d['last_update']} | provisional credit EGP {float(d['provisional_credit']):.2f} | "
                                       f"expected resolution by {d['expected_resolution_by']} | notes: {d['notes'] or 'none'}")
+            if self.today:
+                lines[d["dispute_id"]] += (f" | deadline status: {deadline_status(d['expected_resolution_by'], self.today)}"
+                                           f" (as of {self.today})")
         return lines
 
     def owns(self, source_id):

@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import copilot, guards, store
+from . import copilot, dev, guards, store
 
 app = FastAPI(title="Nova Bank Copilot")
 STATIC = Path(__file__).resolve().parent / "static"
@@ -58,6 +58,23 @@ class FlagBody(BaseModel):
 class SendBody(BaseModel):
     drafted_reply: str
     final_reply: str
+    mode: str = "copilot"         # shadow | copilot | auto
+    sources_opened: int = 0       # citation chips the agent opened before sending (Telos rec 14)
+    handle_s: float | None = None  # seconds from opening the case to sending
+
+
+class ApproveBody(BaseModel):
+    final_reply: str
+    handle_s: float | None = None
+    sources_opened: int = 0
+
+
+class SourceBody(BaseModel):
+    source: str
+
+
+AUTO = {}  # case_id -> the assessed draft, so a high-risk case can be approved later
+OUTCOME = {"low_resolved": "resolved", "low_escalated": "escalated", "high": "awaiting_approval", "blocked": "needs_agent"}
 
 
 def _masked(case_id, text):
@@ -76,6 +93,11 @@ def _edit_fields(case_id, drafted, final):
 @app.get("/")
 def index():
     return FileResponse(STATIC / "index.html", headers={"Cache-Control": "no-store"})  # browsers always load the latest console
+
+
+@app.get("/api/today")
+def today():
+    return {"today": copilot.today()}
 
 
 @app.get("/api/cases")
@@ -133,8 +155,66 @@ def send(case_id: str, body: SendBody):
     if case_id not in store.cases():
         raise HTTPException(404, "unknown case")
     edit = _edit_fields(case_id, body.drafted_reply, body.final_reply)
-    copilot.audit("agent_send", case_id=case_id, **edit)
+    copilot.audit("agent_send", case_id=case_id, mode=body.mode, sources_opened=body.sources_opened,
+                  handle_s=body.handle_s, **edit)
     return {"edited": edit["edited"], "changed_pct": edit["changed_pct"]}
+
+
+@app.post("/api/cases/{case_id}/source_opened")
+def source_opened(case_id: str, body: SourceBody):
+    if case_id not in store.cases():
+        raise HTTPException(404, "unknown case")
+    copilot.audit("source_opened", case_id=case_id, source=body.source)
+    return {"ok": True}
+
+
+def _submit(case_id, actions, event):
+    """Hand each action to its approver from the policy table; nothing here decides an outcome."""
+    out = []
+    for a in actions:
+        approver = guards.approver_for(a["action"], a.get("amount_egp"))
+        status = guards.ACTION_RULES[a["action"]][1]
+        copilot.audit(event, case_id=case_id, action=a["action"], approver=approver, status=status,
+                      reason=a.get("reason", ""), amount_egp=a.get("amount_egp"))
+        out.append({"action": a["action"], "approver": approver, "status": status})
+    return out
+
+
+@app.post("/api/cases/{case_id}/auto")
+def auto_reply(case_id: str):
+    """Auto-reply mode: low risk is answered or handed over by the copilot; high risk waits for a human; blocked goes to an agent."""
+    if case_id not in store.cases():
+        raise HTTPException(404, "unknown case")
+    try:
+        result = copilot.with_risk(copilot.suggest(case_id))
+    except Exception as e:
+        raise HTTPException(502, f"copilot unavailable: {e}")
+    AUTO[case_id] = result
+    level = result["risk"]["level"]
+    outcome, actions = OUTCOME[level], []
+    if level in ("low_resolved", "low_escalated"):
+        copilot.audit("auto_send", case_id=case_id, reply=_masked(case_id, result["reply"]), risk=level)
+        if level == "low_escalated":
+            handover = [a for a in result["draft"]["suggested_actions"] if a["action"] in guards.HANDOVER_ACTIONS]
+            if not handover:  # escalated on the complaint flag alone: log it, so the label is true
+                handover = [{"action": "log_complaint", "reason": "complaint flagged in the customer's message"}]
+            actions = _submit(case_id, handover, "auto_action")
+    copilot.audit("auto_outcome", case_id=case_id, outcome=outcome, risk=level, reason=result["risk"]["reason"])
+    return {"case_id": case_id, "risk": result["risk"], "outcome": outcome, "actions": actions, "result": result}
+
+
+@app.post("/api/cases/{case_id}/approve")
+def approve(case_id: str, body: ApproveBody):
+    """A human approves a high-risk auto-reply case: the reply is sent and each action goes to its policy approver."""
+    result = AUTO.get(case_id)
+    if result is None or result["risk"]["level"] != "high":
+        raise HTTPException(409, "only a high-risk case assessed in auto-reply can be approved")
+    AUTO.pop(case_id)  # approve once: a double-click must not submit the actions twice
+    edit = _edit_fields(case_id, result["reply"], body.final_reply)
+    copilot.audit("agent_send", case_id=case_id, mode="auto", approved=True, sources_opened=body.sources_opened,
+                  handle_s=body.handle_s, **edit)
+    actions = _submit(case_id, result["draft"]["suggested_actions"], "agent_action")
+    return {"sent": True, "actions": actions, "changed_pct": edit["changed_pct"]}
 
 
 @app.post("/api/cases/{case_id}/flag")
@@ -144,6 +224,11 @@ def flag(case_id: str, body: FlagBody):
     edit = _edit_fields(case_id, body.drafted_reply, body.edited_reply) if body.drafted_reply and body.edited_reply else {}
     copilot.audit("agent_flag", case_id=case_id, note=body.note, **edit)
     return {"ok": True, "changed_pct": edit.get("changed_pct")}
+
+
+@app.get("/api/dev/summary")
+def dev_summary():
+    return dev.summary()
 
 
 @app.get("/api/policies/{policy_id}")
