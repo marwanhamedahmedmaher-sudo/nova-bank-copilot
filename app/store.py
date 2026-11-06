@@ -69,6 +69,9 @@ def policies_prompt_text():
     return "\n\n".join(p["raw"].strip() for p in policies().values())
 
 
+CLOSED_STAGES = {"declined", "resolved_in_favour"}
+
+
 def deadline_status(expected, today):
     """Worked out in code, not by the model (Telos rec 16): 'due today', 'overdue by N days' or 'due in N days'."""
     days = (date.fromisoformat(today) - date.fromisoformat(expected)).days
@@ -116,7 +119,7 @@ class CustomerScope:
                                       f"reason: {d['reason']} | opened {d['opened']} | stage: {d['stage']} | "
                                       f"last update {d['last_update']} | provisional credit EGP {float(d['provisional_credit']):.2f} | "
                                       f"expected resolution by {d['expected_resolution_by']} | notes: {d['notes'] or 'none'}")
-            if self.today:
+            if self.today and d["stage"] not in CLOSED_STAGES:  # a decided dispute has no deadline left
                 lines[d["dispute_id"]] += (f" | deadline status: {deadline_status(d['expected_resolution_by'], self.today)}"
                                            f" (as of {self.today})")
         return lines

@@ -25,3 +25,10 @@ def test_dispute_line_carries_status_when_today_is_set():
 def test_dispute_line_without_today_has_no_status():
     line = store.CustomerScope("C001").record_lines()["D-1001"]
     assert "deadline status" not in line
+
+
+def test_closed_disputes_get_no_deadline_status():
+    resolved = store.CustomerScope("C020", today="2026-10-30").record_lines()["D-1004"]  # resolved_in_favour
+    declined = store.CustomerScope("C006", today="2026-10-30").record_lines()["D-1002"]  # declined
+    assert "deadline status" not in resolved
+    assert "deadline status" not in declined
