@@ -7,7 +7,11 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from typing import Literal
+
+from pydantic import BaseModel, Field
+
+Mode = Literal["shadow", "copilot", "auto"]
 
 from . import copilot, dev, guards, store
 
@@ -58,7 +62,7 @@ class FlagBody(BaseModel):
 class SendBody(BaseModel):
     drafted_reply: str
     final_reply: str
-    mode: str = "copilot"         # shadow | copilot | auto
+    mode: Mode = "copilot"
     sources_opened: int = 0       # citation chips the agent opened before sending (Telos rec 14)
     handle_s: float | None = None  # seconds from opening the case to sending
 
@@ -71,6 +75,11 @@ class ApproveBody(BaseModel):
 
 class SourceBody(BaseModel):
     source: str
+
+
+class ReviewBody(BaseModel):
+    vote: Literal["up", "down"]
+    note: str = Field("", max_length=500)
 
 
 AUTO = {}  # case_id -> the assessed draft, so a high-risk case can be approved later
@@ -224,6 +233,34 @@ def flag(case_id: str, body: FlagBody):
     edit = _edit_fields(case_id, body.drafted_reply, body.edited_reply) if body.drafted_reply and body.edited_reply else {}
     copilot.audit("agent_flag", case_id=case_id, note=body.note, **edit)
     return {"ok": True, "changed_pct": edit.get("changed_pct")}
+
+
+@app.get("/api/closed")
+def closed_cases(mode: Mode = "copilot"):
+    """Closed tab for one mode, newest first. Replies in the log are masked; the console puts the first name back."""
+    rows = dev.closed().get(mode, {})
+    out = [{"case_id": cid, **info} for cid, info in rows.items() if cid in store.cases()]
+    return sorted(out, key=lambda r: r["at"], reverse=True)
+
+
+@app.post("/api/cases/{case_id}/review")
+def review(case_id: str, body: ReviewBody):
+    """Thumbs up/down on a case the copilot closed by itself in auto-reply; logged for the evals."""
+    row = dev.closed()["auto"].get(case_id)
+    if not row or row["by"] != "copilot":
+        raise HTTPException(409, "only a case the copilot closed in auto-reply can be reviewed")
+    if body.vote == "down" and not body.note.strip():
+        raise HTTPException(422, "a thumbs down needs a note for the weekly review")
+    copilot.audit("auto_review", case_id=case_id, vote=body.vote, note=_masked(case_id, body.note))  # free text: masked like every other field
+    return {"ok": True}
+
+
+@app.post("/api/demo/reset")
+def demo_reset():
+    """Reopen every case for the next demo run. Logged, not deleted: the audit log stays append-only."""
+    AUTO.clear()
+    copilot.audit("demo_reset")
+    return {"ok": True}
 
 
 @app.get("/api/dev/summary")
