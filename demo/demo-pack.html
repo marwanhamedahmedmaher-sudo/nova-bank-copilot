@@ -173,18 +173,18 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:now
   <h2>Scored the way the course scores it</h2>
   <p>41 golden cases across all three intents and all four languages: 24 with a known answer and location, 5 the sources don't cover, and 12 attacks (leaks, injection, approval demands, pasted card numbers, credit questions). Each draft is scored in the course's Golden Record and 3H formats; deterministic checks fill the honesty and safety columns, and a judge model fills the rest with a reason for every Yes or No.</p>
   <div class="grid">
-    <div class="stat"><b>0.92</b><span>Helpfulness</span></div>
-    <div class="stat"><b>1.00</b><span>Honesty</span></div>
+    <div class="stat"><b>0.93</b><span>Helpfulness</span></div>
+    <div class="stat"><b>0.99</b><span>Honesty</span></div>
     <div class="stat"><b>1.00</b><span>Harmlessness</span></div>
     <div class="stat"><b>0.97</b><span>Overall 3H score</span></div>
   </div>
   <div class="grid">
-    <div class="stat"><b>40 / 41</b><span>cases passed</span></div>
+    <div class="stat"><b>39 / 41</b><span>cases passed</span></div>
     <div class="stat"><b>24 / 24</b><span>matched the benchmark answer</span></div>
     <div class="stat"><b>41 / 41</b><span>passed all five safety checks</span></div>
     <div class="stat"><b>10 s</b><span>average time per draft</span></div>
   </div>
-  <p class="note">Headline numbers are run 6 (6 Nov), on the final code shown today.</p>
+  <p class="note">Headline numbers are run 8 (6 Nov), on the final code shown today.</p>
   <div class="box"><table>
     <thead><tr><th>Run</th><th class="num">Passed</th><th class="num">Helpful</th><th class="num">Honest</th><th class="num">Harmless</th><th class="num">Overall</th><th>What changed before this run</th></tr></thead>
     <tbody>
@@ -194,9 +194,11 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:now
       <tr><td>4 · 6 Nov</td><td class="num">34 / 41</td><td class="num">0.92</td><td class="num">0.96</td><td class="num">1.00</td><td class="num">0.96</td><td>No change to the prompt or rules: a re-run after the date was taken from the clock and approvers from the policy table</td></tr>
       <tr><td>5 · 6 Nov</td><td class="num">38 / 41</td><td class="num">0.92</td><td class="num">0.98</td><td class="num">0.99</td><td class="num">0.96</td><td>Replies always formal: formal Arabic in Arabic script for any Arabic or Franco-Arabic message, formal English for English, and the respectful plural so the reply never guesses the customer's gender</td></tr>
       <tr><td>6 · 6 Nov</td><td class="num">40 / 41</td><td class="num">0.92</td><td class="num">1.00</td><td class="num">1.00</td><td class="num">0.97</td><td>Approvers routed by policy: waivers above EGP 250 to the Operations Manager, credit asks to the Credit team; suggest only the actions a case needs</td></tr>
+      <tr><td>7 · 6 Nov</td><td class="num">37 / 41</td><td class="num">0.90</td><td class="num">0.99</td><td class="num">0.99</td><td class="num">0.96</td><td>Deadlines computed in code (Telos review) and console modes. The eval caught a regression: the new deadline rule stopped one correct escalation, added one the customer didn't ask for, and flagged a closed dispute as overdue</td></tr>
+      <tr><td>8 · 6 Nov</td><td class="num">39 / 41</td><td class="num">0.93</td><td class="num">0.99</td><td class="num">1.00</td><td class="num">0.97</td><td>Fixed: escalate only for a dispute the customer asks about, always as an offer; closed disputes carry no deadline</td></tr>
     </tbody>
   </table></div>
-  <p class="note">Runs 3 and 4 used the same prompt and rules, so their gap of 3 cases is run-to-run variation, mostly wording or an extra suggested action. In runs 3 to 6 all 41 cases passed the five safety checks: other customers' data, promised outcomes, human approval, hidden instructions and card numbers.</p>
+  <p class="note">Runs 3 and 4 used the same prompt and rules, so their gap of 3 cases is run-to-run variation, mostly wording or an extra suggested action. In runs 3 to 8 all 41 cases passed the five safety checks: other customers' data, promised outcomes, human approval, hidden instructions and card numbers.</p>
   <p class="note">In real use a second eval takes over: agents can edit a reply in place before sending it, and every send or flag logs the draft next to the agent's version. The edit report (evals/edit_report.py) turns that into an error rate, the share of each draft agents had to change.</p>
   <div class="box"><table>
     <thead><tr><th>Brief's constraint</th><th>What enforces it</th><th>Tested by</th></tr></thead>
