@@ -46,15 +46,36 @@ class SuggestBody(BaseModel):
 class ActionBody(BaseModel):
     action: str
     reason: str = ""
+    amount_egp: float | None = None
 
 
 class FlagBody(BaseModel):
     note: str
+    drafted_reply: str | None = None
+    edited_reply: str | None = None
+
+
+class SendBody(BaseModel):
+    drafted_reply: str
+    final_reply: str
+
+
+def _masked(case_id, text):
+    """The audit log holds masked text only (POL-20 §4-5): first name back to its placeholder, identifiers masked."""
+    first = store.CustomerScope(store.cases()[case_id]["customer_id"]).first_name
+    return guards.mask_pii(text.replace(first, "{{FIRST_NAME}}"))
+
+
+def _edit_fields(case_id, drafted, final):
+    """What the agent changed, logged for the edit-rate eval (evals/edit_report.py)."""
+    changed = round(guards.changed_share(drafted, final) * 100, 1)
+    return {"edited": changed > 0, "changed_pct": changed,
+            "drafted_reply": _masked(case_id, drafted), "final_reply": _masked(case_id, final)}
 
 
 @app.get("/")
 def index():
-    return FileResponse(STATIC / "index.html")
+    return FileResponse(STATIC / "index.html", headers={"Cache-Control": "no-store"})  # browsers always load the latest console
 
 
 @app.get("/api/cases")
@@ -98,15 +119,31 @@ def suggest(case_id: str, body: SuggestBody):
 def take_action(case_id: str, body: ActionBody):
     if body.action not in guards.ACTION_RULES:
         raise HTTPException(400, "unknown action")
-    approver, status, note = guards.ACTION_RULES[body.action]
-    copilot.audit("agent_action", case_id=case_id, action=body.action, approver=approver, status=status, reason=body.reason)
+    _, status, note = guards.ACTION_RULES[body.action]
+    approver = guards.approver_for(body.action, body.amount_egp)
+    if body.action == "request_fee_waiver":
+        note = f"Waiver request sent to the {guards.APPROVER_NAMES[approver]} (POL-11 §2)."
+    copilot.audit("agent_action", case_id=case_id, action=body.action, approver=approver, status=status,
+                  reason=body.reason, amount_egp=body.amount_egp)
     return {"action": body.action, "approver": approver, "status": status, "note": note}
+
+
+@app.post("/api/cases/{case_id}/send")
+def send(case_id: str, body: SendBody):
+    if case_id not in store.cases():
+        raise HTTPException(404, "unknown case")
+    edit = _edit_fields(case_id, body.drafted_reply, body.final_reply)
+    copilot.audit("agent_send", case_id=case_id, **edit)
+    return {"edited": edit["edited"], "changed_pct": edit["changed_pct"]}
 
 
 @app.post("/api/cases/{case_id}/flag")
 def flag(case_id: str, body: FlagBody):
-    copilot.audit("agent_flag", case_id=case_id, note=body.note)
-    return {"ok": True}
+    if case_id not in store.cases():
+        raise HTTPException(404, "unknown case")
+    edit = _edit_fields(case_id, body.drafted_reply, body.edited_reply) if body.drafted_reply and body.edited_reply else {}
+    copilot.audit("agent_flag", case_id=case_id, note=body.note, **edit)
+    return {"ok": True, "changed_pct": edit.get("changed_pct")}
 
 
 @app.get("/api/policies/{policy_id}")

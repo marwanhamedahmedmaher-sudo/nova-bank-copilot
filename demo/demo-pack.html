@@ -76,7 +76,7 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:now
   <div class="eyebrow">AI PM Builders · Demo Day · 7 Nov 2026</div>
   <h1>Nova Bank support copilot</h1>
   <p class="lead">An assistant for Nova Bank's contact-center agents. It drafts answers to dispute, fee and card questions from Nova's own policies and the verified customer's own records. Every claim is cited and checked, and it never approves anything.</p>
-  <div class="meta"><span>Live product: agent console</span><span>Model: Claude Opus 5.5, synthetic data only</span><span>Languages: English, formal Arabic, Egyptian Arabic, Franco-Arabic</span></div>
+  <div class="meta"><span>Live product: agent console</span><span>Model: Claude Opus 5.5, synthetic data only</span><span>Understands English, formal Arabic, Egyptian Arabic and Franco-Arabic; replies in formal Arabic or formal English</span></div>
 </header>
 
 <section>
@@ -95,8 +95,8 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:now
   <div class="eyebrow">Live demo, in this order</div>
   <h2>Six cases, then the panel tries to break it</h2>
   <ol class="steps">
-    <li><div><b>Mariam asks where her money is, in Franco-Arabic</b><small>CASE-101. Reads dispute D-1001, says the EGP 1,200 provisional credit is already applied, and spots that the expected date on the record has passed, so it suggests escalating to a supervisor. Every claim carries a chip like <span class="cite">D-1001</span> or <span class="cite">POL-05 §4</span>.</small></div></li>
-    <li><div><b>Omar is angry about EGP 225 in overdraft fees</b><small>CASE-102. Explains 3 × EGP 75 and the daily cap, then suggests a goodwill waiver labelled "Team Leader approves". The agent can't waive it alone.</small></div></li>
+    <li><div><b>Mariam asks where her money is, in Franco-Arabic</b><small>CASE-101. Replies in formal Arabic. Reads dispute D-1001, says the EGP 1,200 provisional credit is already applied, and spots that the expected date on the record has passed, so it suggests escalating to a supervisor. Every claim carries a chip like <span class="cite">D-1001</span> or <span class="cite">POL-05 §4</span>.</small></div></li>
+    <li><div><b>Omar is angry about EGP 225 in overdraft fees</b><small>CASE-102. Explains 3 × EGP 75 and the daily cap. Asked to waive it, it suggests a goodwill waiver labelled "Team Leader approves"; the same request on Hana's EGP 435 goes to the Operations Manager, because Nova's policy sends waivers above EGP 250 there <span class="cite">POL-11 §2</span>. Code picks the approver, not the model.</small></div></li>
     <li><div><b>Karim demands a refund on a declined dispute, in Egyptian Arabic</b><small>CASE-106. Gives the decline reason from the record, refuses to refund, and offers the complaint route for a second review <span class="cite">POL-16 §3</span>.</small></div></li>
     <li><div><b>Nour lost her card, in formal Arabic</b><small>CASE-103. Block first, free replacement on Premium, EGP 100 for next-day delivery in Cairo.</small></div></li>
     <li><div><b>A husband asks for his wife's balance</b><small>CASE-108. Refuses, citing <span class="cite">POL-17 §2</span>. The model never had her data to begin with.</small></div></li>
@@ -174,27 +174,30 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:now
   <p>41 golden cases across all three intents and all four languages: 24 with a known answer and location, 5 the sources don't cover, and 12 attacks (leaks, injection, approval demands, pasted card numbers, credit questions). Each draft is scored in the course's Golden Record and 3H formats; deterministic checks fill the honesty and safety columns, and a judge model fills the rest with a reason for every Yes or No.</p>
   <div class="grid">
     <div class="stat"><b>0.92</b><span>Helpfulness</span></div>
-    <div class="stat"><b>0.96</b><span>Honesty</span></div>
+    <div class="stat"><b>1.00</b><span>Honesty</span></div>
     <div class="stat"><b>1.00</b><span>Harmlessness</span></div>
-    <div class="stat"><b>0.96</b><span>Overall 3H score</span></div>
+    <div class="stat"><b>0.97</b><span>Overall 3H score</span></div>
   </div>
   <div class="grid">
-    <div class="stat"><b>34 / 41</b><span>cases passed</span></div>
+    <div class="stat"><b>40 / 41</b><span>cases passed</span></div>
     <div class="stat"><b>24 / 24</b><span>matched the benchmark answer</span></div>
     <div class="stat"><b>41 / 41</b><span>passed all five safety checks</span></div>
-    <div class="stat"><b>11 s</b><span>average time per draft</span></div>
+    <div class="stat"><b>10 s</b><span>average time per draft</span></div>
   </div>
-  <p class="note">Headline numbers are run 4 (6 Nov), on the final code shown today.</p>
+  <p class="note">Headline numbers are run 6 (6 Nov), on the final code shown today.</p>
   <div class="box"><table>
     <thead><tr><th>Run</th><th class="num">Passed</th><th class="num">Helpful</th><th class="num">Honest</th><th class="num">Harmless</th><th class="num">Overall</th><th>What changed before this run</th></tr></thead>
     <tbody>
       <tr><td>1 · 30 Oct</td><td class="num">28 / 41</td><td class="num">0.92</td><td class="num">0.93</td><td class="num">0.98</td><td class="num">0.94</td><td>First version</td></tr>
       <tr><td>2 · 30 Oct</td><td class="num">35 / 41</td><td class="num">0.91</td><td class="num">0.98</td><td class="num">0.98</td><td class="num">0.96</td><td>No uncited extra sentences in replies; every refund request flagged; the promise check sees the verified facts</td></tr>
       <tr><td>3 · 31 Oct</td><td class="num">37 / 41</td><td class="num">0.93</td><td class="num">1.00</td><td class="num">0.99</td><td class="num">0.97</td><td>Replies offer actions instead of claiming they're done; new check blocks stray characters; "not covered" answers say so plainly</td></tr>
-      <tr><td>4 · 6 Nov</td><td class="num">34 / 41</td><td class="num">0.92</td><td class="num">0.96</td><td class="num">1.00</td><td class="num">0.96</td><td>No change to the prompt or rules: a re-run on the final code (date from the clock, approver from the policy table)</td></tr>
+      <tr><td>4 · 6 Nov</td><td class="num">34 / 41</td><td class="num">0.92</td><td class="num">0.96</td><td class="num">1.00</td><td class="num">0.96</td><td>No change to the prompt or rules: a re-run after the date was taken from the clock and approvers from the policy table</td></tr>
+      <tr><td>5 · 6 Nov</td><td class="num">38 / 41</td><td class="num">0.92</td><td class="num">0.98</td><td class="num">0.99</td><td class="num">0.96</td><td>Replies always formal: formal Arabic in Arabic script for any Arabic or Franco-Arabic message, formal English for English, and the respectful plural so the reply never guesses the customer's gender</td></tr>
+      <tr><td>6 · 6 Nov</td><td class="num">40 / 41</td><td class="num">0.92</td><td class="num">1.00</td><td class="num">1.00</td><td class="num">0.97</td><td>Approvers routed by policy: waivers above EGP 250 to the Operations Manager, credit asks to the Credit team; suggest only the actions a case needs</td></tr>
     </tbody>
   </table></div>
-  <p class="note">Runs 3 and 4 used the same prompt and rules, so the gap of 3 cases is run-to-run variation, mostly wording or an extra suggested action. In both runs all 41 cases passed the five safety checks: other customers' data, promised outcomes, human approval, hidden instructions and card numbers.</p>
+  <p class="note">Runs 3 and 4 used the same prompt and rules, so their gap of 3 cases is run-to-run variation, mostly wording or an extra suggested action. In runs 3 to 6 all 41 cases passed the five safety checks: other customers' data, promised outcomes, human approval, hidden instructions and card numbers.</p>
+  <p class="note">In real use a second eval takes over: agents can edit a reply in place before sending it, and every send or flag logs the draft next to the agent's version. The edit report (evals/edit_report.py) turns that into an error rate, the share of each draft agents had to change.</p>
   <div class="box"><table>
     <thead><tr><th>Brief's constraint</th><th>What enforces it</th><th>Tested by</th></tr></thead>
     <tbody>
@@ -205,7 +208,7 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:now
       <tr><td>Survive a compliance officer</td><td>Append-only audit log of masked input, sources, draft, checks and agent actions; the eval suite is the test evidence</td><td>Every case</td></tr>
     </tbody>
   </table></div>
-  <p class="note">Every fix came from reading the judge's reasons, not from editing the test. One benchmark was corrected: the copilot escalated a duplicate charge because the 5-business-day provisional credit (POL-06 §3) was overdue, and that was the right call. The 7 cases failing in run 4 are wording and judgement, not safety: three suggested an action nobody needed (an escalation or a complaint), three added a small detail the cited source doesn't state (such as calling a fee waiver "automatic"), and one card-delivery answer didn't say tomorrow is a weekend. No run leaked data or showed the agent a promised outcome. Spreadsheets: evals/results.</p>
+  <p class="note">Every fix came from reading the judge's reasons, not from editing the test. One benchmark was corrected: the copilot escalated a duplicate charge because the 5-business-day provisional credit (POL-06 §3) was overdue, and that was the right call. The one case failing in run 6 is a card-delivery answer that offered next-business-day delivery but didn't say tomorrow is a weekend. No run leaked data or showed the agent a promised outcome. Spreadsheets: evals/results.</p>
 </section>
 
 <section>
@@ -225,7 +228,7 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:now
       <tr><td>Phase 2 in-app resolution (from month 7)</td><td class="num">30%</td><td>Assumption, conservative against published bank-assistant results</td></tr>
       <tr><td>Agent cost per contact today</td><td class="num">EGP 53</td><td>120 agents × EGP 20,000 fully loaded ÷ 45,000 contacts (assumed, per instructor)</td></tr>
       <tr><td>All-in copilot cost per assisted contact</td><td class="num">EGP 14</td><td>In-country hosting EGP 250k/month (assumed) + measured model cost</td></tr>
-      <tr><td>Model cost per draft</td><td class="num">$0.034</td><td>Measured across the 31 Oct eval run, guard model included; the 6 Nov run measured $0.027</td></tr>
+      <tr><td>Model cost per draft</td><td class="num">$0.034</td><td>Measured across the 31 Oct eval run, guard model included; the final 6 Nov run measured $0.026</td></tr>
     </tbody>
   </table></div>
   <div class="two">
@@ -248,7 +251,7 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:now
   <h2>Questions a compliance officer will ask</h2>
   <div class="qa">
     <details open><summary>Does any customer data leave Egypt?</summary><p>Not in production. Data, logs and the model run in Egypt, and masking happens before any model call. The demo uses synthetic data only. Banks fall outside the data protection law (PDPL Art. 3); bank secrecy under Banking Law 194/2020 Art. 140-143 is the binding rule, with criminal penalties.</p></details>
-    <details><summary>Can the copilot move money, waive a fee or approve a dispute?</summary><p>No. It can only suggest an action, and each suggestion names who must approve it: the agent, a Team Leader, the Disputes team or the Credit team. That matches the human-final-decision principle in Egypt's 2023 Charter for Responsible AI.</p></details>
+    <details><summary>Can the copilot move money, waive a fee or approve a dispute?</summary><p>No. It can only suggest an action, and each suggestion names who must approve it: the agent, a Team Leader, the Operations Manager (waivers above EGP 250), the Disputes team or the Credit team. Code sets the approver from Nova's policies, not the model. That matches the human-final-decision principle in Egypt's 2023 Charter for Responsible AI.</p></details>
     <details><summary>Could an agent see another customer through it?</summary><p>No. Each session is bound to the customer on the verified case, and the model is given only that customer's records. A request about anyone else is refused and flagged.</p></details>
     <details><summary>Who is accountable if it states a wrong fee?</summary><p>The bank, under CBE consumer protection rules. That is why fee answers come only from the current tariff with a citation, numbers are checked against the source, and the agent sends the reply.</p></details>
     <details><summary>Can you prove what it said and why?</summary><p>Yes. Every draft is logged with the masked input, the sources it was given, each guardrail result and the agent's action. The eval suite is the documented test evidence the 2026 national AI guidelines ask for.</p></details>
@@ -260,8 +263,8 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:now
   <h2>From demo to customer-facing</h2>
   <div class="card" style="gap:0">
     <div class="phase"><span class="when">Now</span><div><b>Demo</b><p>Agent copilot on synthetic data, 41-case eval suite, audit log.</p></div></div>
-    <div class="phase"><span class="when">Weeks 1–8</span><div><b>Pilot with 20 agents</b><p>In-country model behind the same interface; written CBE view on masked prompts; a form-of-address field (Mr/Ms) from the CRM so Arabic replies use the right gender without sending the name. Goals: 2 minutes off in-scope handle time, citations correct in 98% of drafts, zero leaks, agents accept at least 60% of drafts.</p></div></div>
-    <div class="phase"><span class="when">Months 3–6</span><div><b>All 120 agents</b><p>Complaint timer for the CBE 2- and 15-working-day limits, card-scheme deadline warnings, weekly review of flagged drafts.</p></div></div>
+    <div class="phase"><span class="when">Weeks 1–8</span><div><b>Pilot with 20 agents</b><p>In-country model behind the same interface; written CBE view on masked prompts; a form-of-address field (Mr/Ms) from the CRM so Arabic replies use the right gender without sending the name. Goals: 2 minutes off in-scope handle time, citations correct in 98% of drafts, zero leaks, agents accept at least 60% of drafts, tracked by the edit report.</p></div></div>
+    <div class="phase"><span class="when">Months 3–6</span><div><b>All 120 agents</b><p>An approvals queue for Team Leaders, the Operations Manager and the Credit team, with the customer told the outcome and anything overdue moving up a level. Complaint timer for the CBE 2- and 15-working-day limits, card-scheme deadline warnings, weekly review of flagged drafts.</p></div></div>
     <div class="phase"><span class="when">Month 7+</span><div><b>Customer-facing in the app</b><p>Fee explanations and dispute status first, labelled as AI, one tap to a human. Anything that moves money goes to a person. Goal: 30% of in-scope contacts resolved in the app.</p></div></div>
     <div class="phase"><span class="when">Later</span><div><b>Beyond support</b><p>The same grounded, approval-gated pattern for SMB loan underwriting (9 days today), with the Credit team deciding.</p></div></div>
   </div>

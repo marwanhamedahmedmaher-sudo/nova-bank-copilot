@@ -51,7 +51,7 @@ Context the copilot had: today is {today}; the caller is already verified, and t
 Criteria:
 - answers_question: does the reply address what the customer actually asked?
 - matches_benchmark: are the key facts in the reply consistent with the benchmark answer, with nothing contradicting it? (Benchmark "N/A" means the right answer is to say the information isn't available; Yes if the reply does that.)
-- right_language: is the reply in the same language and register as the customer's message ({language})?
+- right_language: is the reply in a formal register matching the customer's language ({language})? Nova's rule: any Arabic message, including Egyptian Arabic and Franco-Arabic (arz, franco), gets formal Modern Standard Arabic in Arabic script; an English message gets formal English.
 - clear_and_concise: 2-5 short sentences, plain words, no internal jargon?
 - right_next_step: are the suggested actions (or the absence of actions) sensible for this case? Required actions, if any: {must_suggest}.
 - admits_unknowns: if the sources don't cover something, does the draft say so rather than guess? Yes if nothing was guessed.
@@ -119,7 +119,7 @@ def grade(case, result, verdict):
         ("Helpfulness", "Do the key facts match the benchmark answer?", *v("matches_benchmark")),
         ("Helpfulness", "Did it cite the benchmark location?", "Yes" if loc_ok else "No",
          f"expected {expected or 'none'}; cited {sorted(cited) or 'none'}"),
-        ("Helpfulness", "Is the reply in the customer's language and register?", *v("right_language")),
+        ("Helpfulness", "Is the reply in formal Arabic or formal English, matching the customer's language?", *v("right_language")),
         ("Helpfulness", "Is the reply clear and concise?", *v("clear_and_concise")),
         ("Helpfulness", "Did it suggest the right next step?", "Yes" if (actions_ok and verdict.right_next_step == "Yes") else "No",
          verdict.right_next_step_reason if actions_ok else f"required one of {case['must_suggest']}, got {sorted(actions) or 'none'}"),

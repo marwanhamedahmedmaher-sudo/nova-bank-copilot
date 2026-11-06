@@ -50,6 +50,11 @@ button:hover{filter:brightness(.97)}
 .card h3{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
 .reply{font-size:16px;line-height:1.6;background:#f7fbff;border:1px solid #d6e6fb;border-radius:10px;padding:12px 14px}
 .reply.rtl,.bubble.rtl{direction:rtl;text-align:right;font-family:"IBM Plex Sans Arabic",Inter,sans-serif}
+.reply[contenteditable]{cursor:text;outline:none}
+.reply[contenteditable]:focus{border-color:var(--brand-2);box-shadow:0 0 0 3px #dbe8fb}
+.tag.edited{background:var(--warn-bg);color:var(--warn)}
+[hidden]{display:none !important}
+input.note{flex:1;min-width:220px;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit}
 .en{color:var(--muted);margin-top:8px;font-size:13.5px}
 .fact{padding:8px 0;border-bottom:1px dashed var(--line)}
 .fact:last-child{border-bottom:0}
@@ -110,7 +115,8 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const LANG = {en:"English", ar:"Formal Arabic", arz:"Egyptian Arabic", franco:"Franco-Arabic"};
 const ACTION = {open_dispute:"Open dispute", block_card:"Block card", order_replacement_card:"Order replacement card",
-  request_fee_waiver:"Request fee waiver", log_complaint:"Log complaint", escalate_to_supervisor:"Escalate to supervisor"};
+  request_fee_waiver:"Request fee waiver", log_complaint:"Log complaint", escalate_to_supervisor:"Escalate to supervisor",
+  refer_to_credit_team:"Refer to Credit team"};
 const APPROVER = {agent:"Agent clicks", team_leader:"Team Leader approves", operations_manager:"Ops Manager approves",
   disputes_team:"Disputes team decides", credit_team:"Credit team decides"};
 const FLAG = {prompt_injection:"Prompt injection", third_party_request:"Asks about someone else", approval_request:"Asks for approval",
@@ -180,7 +186,7 @@ async function ask(){
 }
 
 function renderDraft(d){
-  const dr = d.draft, lang = dr.customer_language;
+  const dr = d.draft, lang = dr.customer_language === "en" ? "en" : "ar";  // replies are formal Arabic or formal English
   const cited = dr.facts.flatMap(f => f.citations.map(c => c.source_id.trim()));
   const flags = [...new Set([...d.input_flags, ...dr.risk_flags])];
   const ready = d.status === "ready";
@@ -192,16 +198,21 @@ function renderDraft(d){
       ${flags.length ? `<span class="flags">${flags.map(f=>`<span class="tag">⚠ ${FLAG[f]||f}</span>`).join("")}</span>` : ""}
     </div>
     <div class="card"><h3>For you</h3>${esc(dr.agent_summary)}</div>
-    <div class="card"><h3>Suggested reply · ${LANG[lang]}</h3>
-      ${ready ? `<div class="reply ${rtl(lang)?"rtl":""}">${bidi(d.reply, lang)}</div><div class="en">EN: ${esc(d.reply_in_english)}</div>
+    <div class="card"><h3>Suggested reply · ${lang === "en" ? "Formal English" : "Formal Arabic"}</h3>
+      ${ready ? `<div class="reply ${rtl(lang)?"rtl":""}" id="reply" contenteditable="true" spellcheck="false" aria-label="Suggested reply, click to edit">${bidi(d.reply, lang)}</div>
+      <div class="row" style="margin-top:6px"><span class="hint">Click the reply to edit it. Sending or flagging logs your version next to the draft.</span>
+        <span class="tag edited" id="edited-tag" hidden>Edited</span><button id="undo" hidden>Undo edits</button></div>
+      <div class="en">EN: ${esc(d.reply_in_english)}</div>
       <div class="row"><button class="primary" id="send">Send reply</button><button id="copy">Copy</button><button id="flag">Flag as wrong</button></div>`
       : `<p>This draft failed a check below, so it is hidden. Answer from the policy yourself or escalate.</p><button id="flag">Flag</button>`}
+      <div class="row" id="flag-box" hidden><input class="note" id="flag-note" placeholder="What is wrong? If you corrected the reply above, your version is logged too.">
+        <button id="flag-submit">Submit flag</button></div>
     </div>
     <div class="card"><h3>Claims and sources</h3>${dr.facts.map(f => `<div class="fact">${esc(f.statement)}<br>
         ${f.citations.map(c => `<span class="cite" data-src="${esc(c.source_id.trim())}" title="${esc(c.quote)}">${esc(c.source_id)}</span>`).join("")}</div>`).join("") || `<span class="hint">No claims.</span>`}</div>
     <div class="card"><h3>Suggested actions · nothing happens until a human approves</h3>${dr.suggested_actions.map((a,i) => `
       <div class="action"><div><b>${ACTION[a.action]}</b><br><span class="hint">${esc(a.reason)}</span></div>
-        <div class="row" style="margin:0"><span class="approver">${APPROVER[a.approver]}</span><button data-act="${a.action}" data-reason="${esc(a.reason)}">${a.approver==="agent"?"Do it":"Send for approval"}</button></div></div>`).join("") || `<span class="hint">No actions suggested.</span>`}</div>
+        <div class="row" style="margin:0"><span class="approver">${APPROVER[a.approver]}</span><button data-act="${a.action}" data-reason="${esc(a.reason)}" data-amount="${a.amount_egp ?? ""}">${a.approver==="agent"?"Do it":"Send for approval"}</button></div></div>`).join("") || `<span class="hint">No actions suggested.</span>`}</div>
     <div class="card"><h3>Guardrail checks</h3>${d.checks.map(c => {
         const cls = c.passed ? "pass" : (c.severity==="warn" ? "warn" : "fail");
         return `<div class="check ${cls}"><span class="i">${c.passed?"✓":(c.severity==="warn"?"!":"✕")}</span><div>${esc(c.name)}<div class="d">${esc(c.detail)}</div></div></div>`;}).join("")}
@@ -210,11 +221,29 @@ function renderDraft(d){
       <span>Tokens in ${d.tokens.input.toLocaleString()} · cached ${d.tokens.cache_read.toLocaleString()} · out ${d.tokens.output.toLocaleString()}</span><span>${d.model}</span></div>`;
   renderCustomer(cited);
   document.querySelectorAll(".cite").forEach(el => el.onclick = () => showSource(el.dataset.src, el.title));
-  document.querySelectorAll("[data-act]").forEach(el => el.onclick = () => act(el.dataset.act, el.dataset.reason));
-  $("#send") && ($("#send").onclick = () => toast("Reply sent to customer and logged to the audit trail."));
-  $("#copy") && ($("#copy").onclick = () => { navigator.clipboard.writeText(d.reply); toast("Copied."); });
-  $("#flag").onclick = async () => { const note = prompt("What is wrong with this suggestion?"); if(!note) return;
-    await fetch(`/api/cases/${current}/flag`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({note})}); toast("Flagged for weekly review (POL-20 §6)."); };
+  document.querySelectorAll("[data-act]").forEach(el => el.onclick = () => act(el.dataset.act, el.dataset.reason, el.dataset.amount));
+  // The agent can edit the reply in place; sending or flagging logs their version next to the draft for the edit-rate eval.
+  const box = $("#reply"), words = s => s.trim().split(/\s+/).join(" ");
+  const finalText = () => box ? box.innerText.trim() : d.reply;
+  const isEdited = () => !!box && words(finalText()) !== words(d.reply);
+  const post = async (path, body) => (await fetch(`/api/cases/${current}/${path}`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)})).json();
+  if(box){
+    box.oninput = () => { $("#edited-tag").hidden = $("#undo").hidden = !isEdited(); };
+    $("#undo").onclick = () => { box.innerHTML = bidi(d.reply, lang); box.oninput(); };
+  }
+  $("#send") && ($("#send").onclick = async () => {
+    const r = await post("send", {drafted_reply: d.reply, final_reply: finalText()});
+    toast(r.edited ? `Sent with ${r.changed_pct}% of the draft changed; both versions logged.` : "Sent as drafted and logged to the audit trail.");
+  });
+  $("#copy") && ($("#copy").onclick = () => { navigator.clipboard.writeText(finalText()); toast("Copied."); });
+  $("#flag").onclick = () => { $("#flag-box").hidden = false; $("#flag-note").focus(); };
+  $("#flag-submit").onclick = async () => {
+    const note = $("#flag-note").value.trim();
+    if(!note){ $("#flag-note").focus(); return; }
+    const r = await post("flag", box ? {note, drafted_reply: d.reply, edited_reply: finalText()} : {note});
+    $("#flag-box").hidden = true; $("#flag-note").value = "";
+    toast("Flagged for weekly review (POL-20 §6)" + (r.changed_pct ? `, with your correction (${r.changed_pct}% of the draft changed).` : "."));
+  };
 }
 
 async function showSource(src, quote){
@@ -233,8 +262,9 @@ async function showSource(src, quote){
   }
 }
 
-async function act(action, reason){
-  const r = await (await fetch(`/api/cases/${current}/action`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({action, reason})})).json();
+async function act(action, reason, amount){
+  const body = {action, reason, amount_egp: amount ? Number(amount) : null};
+  const r = await (await fetch(`/api/cases/${current}/action`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)})).json();
   toast(`${ACTION[action]}: ${r.note}`);
 }
 

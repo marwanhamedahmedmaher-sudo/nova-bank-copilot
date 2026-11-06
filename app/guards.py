@@ -31,26 +31,44 @@ PII_PATTERNS = [
 ]
 
 
-# Who must approve each action before it happens (POL-04 §5, POL-11 §2, POL-07 §1, POL-20 §3)
+# Who must approve each action before it happens (POL-04 §5 disputes, POL-10 §1 and POL-19 §4 credit,
+# POL-11 §2 waivers, POL-16 §3 complaints, POL-20 §3)
 ACTION_RULES = {
     "block_card": ("agent", "done", "Card blocked by agent."),
     "order_replacement_card": ("agent", "done", "Replacement ordered by agent; fee per POL-03 §2."),
     "open_dispute": ("disputes_team", "submitted", "Dispute submitted; only the Disputes team decides."),
-    "request_fee_waiver": ("team_leader", "pending_approval", "Waiver request sent to Team Leader."),
-    "log_complaint": ("agent", "logged", "Complaint logged with a C- reference."),
-    "escalate_to_supervisor": ("team_leader", "pending_approval", "Escalated to supervisor."),
+    "request_fee_waiver": ("team_leader", "pending_approval", "Waiver request sent for approval (POL-11 §2)."),
+    "log_complaint": ("agent", "logged", "Complaint logged with a C- reference; a disputed decision goes back to the Disputes team (POL-16 §3)."),
+    "escalate_to_supervisor": ("team_leader", "pending_approval", "Escalated to the Team Leader."),
+    "refer_to_credit_team": ("credit_team", "pending_approval", "Referred to the Credit team, which alone decides (POL-10 §1, POL-19 §4)."),
 }
+WAIVER_TEAM_LEADER_MAX = 250  # EGP; a bigger waiver needs the Operations Manager (POL-11 §2)
+APPROVER_NAMES = {"agent": "agent", "team_leader": "Team Leader", "operations_manager": "Operations Manager",
+                  "disputes_team": "Disputes team", "credit_team": "Credit team"}
+
+
+def approver_for(action, amount_egp=None):
+    """Who approves this action, from the table above; a waiver above EGP 250 goes to the Operations Manager."""
+    if action == "request_fee_waiver" and (amount_egp or 0) > WAIVER_TEAM_LEADER_MAX:
+        return "operations_manager"
+    return ACTION_RULES[action][0]
 
 
 def set_approvers(draft):
-    """The approver comes from the table above, never from the model. Returns the labels the model got wrong."""
+    """The approver comes from the policy table, never from the model. Returns the labels the model got wrong."""
     corrected = []
     for a in draft.suggested_actions:
-        approver = ACTION_RULES[a.action][0]
+        approver = approver_for(a.action, a.amount_egp)
         if a.approver != approver:
             corrected.append(f"{a.action}: model said {a.approver}, policy says {approver}")
             a.approver = approver
     return corrected
+
+
+def changed_share(drafted, final):
+    """Share of the drafted reply the agent changed, by words: 0 = sent as drafted, 1 = fully rewritten."""
+    a, b = drafted.split(), final.split()
+    return 0.0 if a == b else 1 - SequenceMatcher(None, a, b, autojunk=False).ratio()
 
 
 def mask_pii(text):
@@ -139,7 +157,7 @@ def check_draft(draft, scope, customer_message):
                        detail=f"not found in any cited source: {', '.join(stray)}" if stray else "every number traced to a source"))
 
     odd = sorted(set(UNEXPECTED_SCRIPT.findall(draft.suggested_reply)))
-    checks.append(dict(name="Reply is clean text in the customer's script", passed=not odd, severity="block",
+    checks.append(dict(name="Reply is clean text in Arabic or Latin script", passed=not odd, severity="block",
                        detail=f"unexpected characters: {' '.join(odd)}" if odd else "Latin and Arabic only"))
 
     draft_text = " ".join([draft.suggested_reply, draft.reply_in_english, draft.agent_summary])

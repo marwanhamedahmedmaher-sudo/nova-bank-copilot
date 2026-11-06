@@ -1,6 +1,6 @@
 # Nova Bank support copilot
 
-AI PM Builders capstone. An assistant for Nova Bank's contact-center agents: it drafts answers to dispute, fee and card questions from Nova's own policies and the verified customer's own records, in English, formal Arabic, Egyptian Arabic and Franco-Arabic. Every claim is cited and checked by code, and it never approves anything; actions are suggestions an agent or team approves.
+AI PM Builders capstone. An assistant for Nova Bank's contact-center agents: it drafts answers to dispute, fee and card questions from Nova's own policies and the verified customer's own records. It understands English, formal Arabic, Egyptian Arabic and Franco-Arabic, and always replies in formal Arabic or formal English. Every claim is cited and checked by code, and it never approves anything; actions are suggestions an agent or team approves.
 
 Nova Bank is fictional and all data here is synthetic. The brief is in `docs/brief.md`; decisions and research findings are in `CLAUDE.md`.
 
