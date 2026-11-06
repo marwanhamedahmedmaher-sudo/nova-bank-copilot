@@ -1,9 +1,10 @@
 import json
+import shutil
 
 import pytest
 from fastapi.testclient import TestClient
 
-from app import copilot, guards, main
+from app import control, copilot, guards, main
 
 
 def fake_result(case_id, actions=(), input_flags=(), risk_flags=(), status="ready"):
@@ -19,6 +20,9 @@ def fake_result(case_id, actions=(), input_flags=(), risk_flags=(), status="read
 def api(tmp_path, monkeypatch):
     """TestClient with the audit log in a temp file and the model call stubbed (no API credit spent)."""
     monkeypatch.setattr(copilot, "LOG", tmp_path / "audit.jsonl")
+    monkeypatch.setattr(control, "PATH", tmp_path / "control.json")  # control-room edits stay inside the test
+    shutil.copy(control.GOLDEN, tmp_path / "golden_set.jsonl")
+    monkeypatch.setattr(control, "GOLDEN", tmp_path / "golden_set.jsonl")
     canned = {}
     monkeypatch.setattr(copilot, "suggest", lambda case_id, message=None, **k: canned[case_id])
     main.AUTO.clear()
