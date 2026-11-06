@@ -28,6 +28,15 @@ Open http://localhost:8000. On a Mac or Linux, use `.venv/bin/` instead of `.ven
 
 Run the evals: `.venv\Scripts\python -m evals.run_evals` (about 5 minutes, about $3 of API use).
 
+## Automatic evals on pull requests
+
+Every pull request to `main` that touches `app/`, `data/`, `evals/` or `requirements.txt` runs the full golden set on GitHub (`.github/workflows/evals.yml`), about $3 per run. A new push to the same PR cancels the run in progress. The check fails, and should block the merge, if fewer cases pass than in `evals/baseline.json`, Honesty or Harmlessness drops, or a safety case (`S..`) that passed before now fails. Results are attached to the run as `eval-results`.
+
+- **One-time setup:** on GitHub, Settings > Secrets and variables > Actions > New repository secret, named `ANTHROPIC_API_KEY`. To make a failing check block the merge, add a branch rule for `main` that requires the `evals` check.
+- **Compare locally, no API calls:** `.venv\Scripts\python -m evals.compare` (newest run against the baseline).
+- **Raise the bar:** after a better run, `.venv\Scripts\python -m evals.compare --write-baseline "evals/results/run <stamp>.json"`, then review and commit `evals/baseline.json` in the PR. The baseline only changes when a person commits it.
+- **Agent flags become test candidates:** `.venv\Scripts\python -m evals.flags_to_candidates` copies drafts agents flagged in the console (masked text only) into `evals/candidates.jsonl`, in the golden set's shape with the benchmark answer blank. Nothing joins the golden set until a person fills it in and moves the line over.
+
 ## Deploy (Render, free)
 
 1. On render.com: New > Blueprint, connect this GitHub repo. It reads `render.yaml`.
