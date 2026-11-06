@@ -484,6 +484,22 @@ def control_analytics():
     return dev.analytics(control.state()["analytics"])
 
 
+@app.get("/api/control/analytics/edits")
+def control_edits(band: str | None = None):
+    return dev.copilot_edit_rows(band=band)
+
+
+@app.get("/api/control/analytics/edits/download")
+def control_edits_download(band: str | None = None):
+    label = dict(dev.EDIT_BANDS).get(band, "All copilot sends")
+    rows = [[r["case_id"], r["at"][:16].replace("T", " "), r["changed_pct"], label if band else dict(dev.EDIT_BANDS)[r["band"]],
+             r["drafted_reply"], r["final_reply"], r["sources_opened"], r["handle_s"]] for r in dev.copilot_edit_rows(band=band)]
+    data = control._xlsx("Copilot edits", ["Case", "Sent at (UTC)", "% changed", "Edit size", "Copilot draft (masked)",
+                                            "Sent by the agent (masked)", "Sources opened", "Handle time (s)"],
+                         rows, [11, 17, 10, 22, 60, 60, 10, 12])
+    return _download(data, f"copilot-edits-{band or 'all'}-{copilot.today()}.xlsx")
+
+
 @app.post("/api/control/analytics")
 def control_analytics_set(body: AssumptionsBody):
     if body.saved_chat_min < 0 or body.contacts_per_month < 0:

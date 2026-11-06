@@ -134,9 +134,47 @@ def analytics(assumptions, evs=None):
         "minutes_saved": round(tot["minutes"], 1), "minutes_per_chat": round(per_chat, 2),
         "auto_outcomes": {k: outcomes.get(k, 0) for k in ("resolved", "escalated", "awaiting_approval", "needs_agent")},
         "avg_handle_s_by_mode": handle_by_mode([e for e in evs if e["event"] == "agent_send"]),
+        "copilot_edits": copilot_edits(evs),
         "by_day": [{"day": k, **{x: round(v, 1) if x == "minutes" else v for x, v in d.items()}} for k, d in sorted(days.items())
                    if any(d.values())],
         "projection": {"in_scope_chats_per_month": round(in_scope_chats),
                        "deflected_per_month": round(in_scope_chats * deflect_rate),
                        "agent_hours_saved_per_month": round(in_scope_chats * per_chat / 60)},
     }
+
+
+EDIT_BANDS = (("as_drafted", "Sent as drafted"), ("light", "Light edit (under 10%)"),
+              ("moderate", "Moderate edit (10-30%)"), ("heavy", "Heavy rewrite (over 30%)"))
+
+
+def copilot_edits(evs):
+    """How agents changed copilot drafts before sending, in copilot mode only (a shadow send is the agent's own reply,
+    an auto-reply approval is counted with auto-reply). changed_pct = share of the draft's words changed, 0-100."""
+    sends = [e for e in evs if e["event"] == "agent_send" and e.get("mode", "copilot") == "copilot" and "changed_pct" in e]
+    edited = [e for e in sends if e["changed_pct"] > 0]
+    counts = Counter(edit_band(e["changed_pct"]) for e in sends)
+    avg = lambda xs: round(sum(e["changed_pct"] for e in xs) / len(xs), 1) if xs else 0
+    return {
+        "sent": len(sends), "edited": len(edited), "as_drafted": len(sends) - len(edited),
+        "edited_pct": round(100 * len(edited) / len(sends), 1) if sends else 0,
+        "avg_change_pct": avg(sends),            # across every send, unedited ones count as 0
+        "avg_change_when_edited_pct": avg(edited),
+        "bands": [{"key": k, "label": label, "count": counts.get(k, 0)} for k, label in EDIT_BANDS],
+        "flagged": sum(e["event"] == "agent_flag" for e in evs),
+        "biggest": [{"case_id": e["case_id"], "changed_pct": e["changed_pct"], "at": e["ts"]}
+                    for e in sorted(edited, key=lambda e: e["changed_pct"], reverse=True)[:5]],
+    }
+
+
+def edit_band(p):
+    return "as_drafted" if p == 0 else "light" if p < 10 else "moderate" if p <= 30 else "heavy"
+
+
+def copilot_edit_rows(evs=None, band=None):
+    """Each copilot-mode send with the draft and what the agent sent (both masked, as logged), biggest change first."""
+    evs = events() if evs is None else evs
+    rows = [{"case_id": e["case_id"], "at": e["ts"], "changed_pct": e["changed_pct"], "band": edit_band(e["changed_pct"]),
+             "drafted_reply": e.get("drafted_reply", ""), "final_reply": e.get("final_reply", ""),
+             "sources_opened": e.get("sources_opened"), "handle_s": e.get("handle_s")}
+            for e in evs if e["event"] == "agent_send" and e.get("mode", "copilot") == "copilot" and "changed_pct" in e]
+    return sorted([r for r in rows if not band or r["band"] == band], key=lambda r: (-r["changed_pct"], r["at"]))

@@ -229,3 +229,28 @@ def test_eval_notes_upload_logged_with_name_and_time(api):
     assert notes[0]["note"].startswith("Benchmark should") and notes[0]["by"] == "Marwan"
     assert api.events()[-1]["event"] == "eval_notes_uploaded"
     assert api.post("/api/control/evals/notes", json={"filename": "e.xlsx", "data_b64": b64(buf.getvalue()), "by": ""}).status_code == 400
+
+
+def test_copilot_edit_stats_count_only_copilot_sends(api):
+    send = lambda cid, pct, mode="copilot": {"event": "agent_send", "case_id": cid, "mode": mode, "edited": pct > 0, "changed_pct": pct}
+    write([send("CASE-101", 0), send("CASE-102", 5), send("CASE-103", 20), send("CASE-104", 60),
+           send("CASE-105", 80, "shadow"), send("CASE-106", 40, "auto"), {"event": "agent_flag", "case_id": "CASE-107", "note": "x"}])
+    e = api.get("/api/control/analytics").json()["copilot_edits"]
+    assert (e["sent"], e["edited"], e["as_drafted"], e["edited_pct"]) == (4, 3, 1, 75.0)
+    assert e["avg_change_pct"] == 21.2 and e["avg_change_when_edited_pct"] == 28.3
+    assert {b["key"]: b["count"] for b in e["bands"]} == {"as_drafted": 1, "light": 1, "moderate": 1, "heavy": 1}
+    assert e["biggest"][0] == {"case_id": "CASE-104", "changed_pct": 60, "at": "2026-11-06T10:00:00"} and e["flagged"] == 1
+
+
+def test_edit_list_and_download_by_band(api):
+    send = lambda cid, pct: {"event": "agent_send", "case_id": cid, "mode": "copilot", "edited": pct > 0, "changed_pct": pct,
+                             "drafted_reply": "Hello {{FIRST_NAME}}", "final_reply": "Hi {{FIRST_NAME}}, fixed"}
+    write([send("CASE-101", 0), send("CASE-102", 45), send("CASE-103", 70)])
+    rows = api.get("/api/control/analytics/edits?band=heavy").json()
+    assert [r["case_id"] for r in rows] == ["CASE-103", "CASE-102"] and rows[0]["final_reply"] == "Hi {{FIRST_NAME}}, fixed"
+    r = api.get("/api/control/analytics/edits/download?band=heavy")
+    assert r.status_code == 200 and "copilot-edits-heavy" in r.headers["content-disposition"]
+    from io import BytesIO
+    from openpyxl import load_workbook
+    ws = load_workbook(BytesIO(r.content)).active
+    assert ws["A2"].value == "CASE-103" and ws["F2"].value == "Hi {{FIRST_NAME}}, fixed" and ws.max_row == 3
