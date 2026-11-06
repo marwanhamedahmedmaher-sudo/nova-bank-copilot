@@ -29,7 +29,8 @@ CARD_OR_FRAUD = re.compile(
 # Latin, Arabic, digits, punctuation and currency/arrow symbols; anything else in a reply is a generation glitch
 UNEXPECTED_SCRIPT = re.compile(r"[^\x00-\x7F -ɏ؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿ -⁯₠-⃏←-⇿]")
 PII_PATTERNS = [
-    (re.compile(r"\b(?:\d[ -]?){15}\d\b"), "[CARD_NUMBER]"),
+    # keep the last 4 (POL-17 §3 refers to cards that way), so the copilot can say whether a card the customer typed is the one on file
+    (re.compile(r"\b(?:\d[ -]?){15}\d\b"), lambda m: f"[CARD_NUMBER ending {re.sub(r'\D', '', m.group())[-4:]}]"),
     (re.compile(r"\b[23]\d{13}\b"), "[NATIONAL_ID]"),
     (re.compile(r"\b01[0125]\d{8}\b"), "[PHONE]"),
     (re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+"), "[EMAIL]"),
