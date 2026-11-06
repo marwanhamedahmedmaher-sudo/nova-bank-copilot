@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import List, Literal
 
 import anthropic
-import httpx
+import httpx2  # the HTTP client the anthropic SDK itself uses (no extra dependency)
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
@@ -161,7 +161,7 @@ def _call_model(messages):
         try:
             if i == 0 and control.outage():
                 raise anthropic.APIConnectionError(message="primary model outage (simulated in the control room)",
-                                                   request=httpx.Request("POST", "https://api.anthropic.com/v1/messages"))
+                                                   request=httpx2.Request("POST", "https://api.anthropic.com/v1/messages"))
             resp = client().messages.parse(
                 model=model,
                 max_tokens=16000,

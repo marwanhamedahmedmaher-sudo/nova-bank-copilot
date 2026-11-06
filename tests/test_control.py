@@ -3,7 +3,7 @@ import json
 from types import SimpleNamespace
 
 import anthropic
-import httpx
+import httpx2
 import pytest
 
 from app import control, copilot, dev
@@ -69,7 +69,7 @@ class FakeClient:
     def parse(self, model, **k):
         self.asked.append(model)
         if model in self.down:
-            raise anthropic.APIConnectionError(message="down", request=httpx.Request("POST", "https://x"))
+            raise anthropic.APIConnectionError(message="down", request=httpx2.Request("POST", "https://x"))
         return SimpleNamespace(stop_reason="end_turn", model=model)
 
 
