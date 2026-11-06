@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Impact Review - Dispute status contact</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #fafafa;
+    color: #1a1a1a;
+    min-height: 100vh;
+  }
+
+  /* Top bar */
+  .review-topbar {
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 32px;
+    border-bottom: 1px solid #eee;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .review-topbar .left { display: flex; align-items: center; gap: 12px; }
+  .review-topbar .back-link {
+    width: 32px; height: 32px; border-radius: 8px; background: #f2f2f2;
+    display: flex; align-items: center; justify-content: center;
+    text-decoration: none; color: #555; transition: background 0.15s;
+  }
+  .review-topbar .back-link:hover { background: #e8e8e8; }
+  .review-topbar .back-link svg { width: 16px; height: 16px; }
+  .breadcrumb { font-size: 14px; color: #999; }
+  .breadcrumb a { color: #999; text-decoration: none; }
+  .breadcrumb a:hover { color: #00a862; }
+  .breadcrumb .current { color: #1a1a1a; font-weight: 600; }
+  .review-badge {
+    font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 20px;
+    background: #fff8e1; color: #f5a623; border: 1px solid #f5d178;
+  }
+
+  /* Main layout */
+  .review-layout { display: flex; height: calc(100vh - 57px); }
+
+  /* Left: Flow screens */
+  .flow-panel {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 24px; overflow: auto; min-width: 0; background: #f5f5f5;
+  }
+  .flow-screens {
+    display: flex; align-items: center; gap: 20px;
+    transform-origin: center center; transition: transform 0.2s ease;
+  }
+  .screen-slot { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .screen-label {
+    font-size: 11px; font-weight: 600; color: #888;
+    text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .screen-number { font-size: 10px; color: #aaa; margin-top: 4px; }
+  .screen-wrapper {
+    width: 250px; height: 541px; border-radius: 24px; overflow: hidden;
+    border: 4px solid #ddd; background: #fff; position: relative;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; cursor: pointer;
+  }
+  .screen-wrapper:hover {
+    transform: scale(1.03); box-shadow: 0 8px 32px rgba(0,0,0,0.12); border-color: #00a862;
+  }
+  .screen-wrapper iframe {
+    width: 375px; height: 812px; border: none;
+    transform: scale(0.667); transform-origin: top left; pointer-events: none;
+  }
+
+  /* Right: Critique panel */
+  .critique-panel {
+    width: 420px; min-width: 420px; border-left: 1px solid #eee; overflow-y: auto; background: #fff;
+  }
+
+  /* KR Header */
+  .kr-header { background: #1a1a1a; padding: 24px; }
+  .kr-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.2px; color: #888; margin-bottom: 10px;
+  }
+  .kr-item { margin-bottom: 10px; padding-left: 12px; border-left: 3px solid #555; }
+  .kr-item:last-of-type { margin-bottom: 0; }
+  .kr-item.ret { border-color: #90caf9; }
+  .kr-item.eng { border-color: #a5d6a7; }
+  .kr-item .kr-tag {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; margin-bottom: 3px;
+  }
+  .kr-item.ret .kr-tag { color: #90caf9; }
+  .kr-item.eng .kr-tag { color: #a5d6a7; }
+  .kr-item .kr-text { font-size: 14px; font-weight: 600; line-height: 1.4; color: #fff; }
+  .kr-model { margin-top: 12px; font-size: 12px; color: #888; line-height: 1.4; }
+  .kr-flow {
+    margin-top: 10px; display: flex; align-items: center; gap: 8px; font-size: 12px; color: #888;
+  }
+  .kr-flow .flow-tag { background: #333; padding: 3px 10px; border-radius: 6px; color: #ccc; font-weight: 500; }
+
+  /* Alignment */
+  .alignment-section {
+    padding: 18px 24px; display: flex; align-items: center;
+    justify-content: space-between; border-bottom: 1px solid #f0f0f0;
+  }
+  .alignment-label { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+  .alignment-dots { display: flex; gap: 6px; align-items: center; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; background: #e0e0e0; }
+  .dot.filled { background: #f5a623; }
+  .alignment-verdict { font-size: 13px; font-weight: 600; color: #f5a623; margin-left: 10px; }
+
+  /* Sections */
+  .critique-section { padding: 20px 24px; border-bottom: 1px solid #f0f0f0; }
+  .critique-section:last-child { border-bottom: none; }
+  .critique-section h3 {
+    font-size: 13px; font-weight: 700; color: #999; margin-bottom: 14px;
+    text-transform: uppercase; letter-spacing: 0.6px; display: flex; align-items: center; gap: 8px;
+  }
+  .section-icon-green { color: #00a862; }
+  .section-icon-amber { color: #f5a623; }
+  .section-icon-blue { color: #2196F3; }
+
+  .critique-item { display: flex; gap: 10px; margin-bottom: 16px; align-items: flex-start; }
+  .critique-item:last-child { margin-bottom: 0; }
+  .bullet { width: 6px; height: 6px; min-width: 6px; border-radius: 50%; margin-top: 7px; }
+  .bullet.green { background: #00a862; }
+  .critique-item .text { font-size: 13px; color: #555; line-height: 1.55; }
+  .critique-item .text strong { font-weight: 600; color: #1a1a1a; }
+  .screen-ref { font-size: 11px; color: #aaa; display: block; margin-top: 3px; }
+  .impact-bar { display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+  .impact-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  .impact-label.high { color: #d32f2f; }
+  .impact-label.medium { color: #f5a623; }
+  .impact-tag { font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+  .impact-tag.retention { background: #e3f2fd; color: #1565c0; }
+  .impact-tag.engagement { background: #e8f5e9; color: #2e7d32; }
+  .impact-tag.activation { background: #fff3e0; color: #e65100; }
+  /* Product-specific sub-metrics for this KR */
+  .impact-tag.aht { background: #e3f2fd; color: #1565c0; }
+  .impact-tag.fcr { background: #e8f5e9; color: #2e7d32; }
+  .impact-tag.acw { background: #fff3e0; color: #e65100; }
+  .impact-tag.accept { background: #f3e5f5; color: #6a1b9a; }
+  .impact-tag.citation { background: #e0f2f1; color: #00695c; }
+
+  /* Progressive disclosure — "How did I get this?" */
+  details.how { margin-top: 8px; border-top: 1px dashed #eee; padding-top: 8px; }
+  details.how > summary {
+    font-size: 11px; font-weight: 600; color: #2196F3; cursor: pointer;
+    list-style: none; user-select: none;
+  }
+  details.how > summary::-webkit-details-marker { display: none; }
+  details.how > summary::before { content: "▸ "; }
+  details.how[open] > summary::before { content: "▾ "; }
+  details.how .how-body { font-size: 12px; color: #777; line-height: 1.5; margin-top: 6px; }
+
+  .critique-item .rec-num {
+    width: 20px; height: 20px; min-width: 20px; border-radius: 50%;
+    font-size: 10px; font-weight: 700; display: flex; align-items: center;
+    justify-content: center; color: #fff; margin-top: 1px; flex-shrink: 0;
+  }
+  .critique-item .rec-num.amber { background: #f5a623; }
+  .critique-item .rec-num.blue { background: #2196F3; }
+
+  /* Footer */
+  .critique-footer {
+    padding: 16px 24px; display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; color: #aaa; border-top: 1px solid #f0f0f0; background: #fafafa;
+  }
+
+  /* Overlay (screens are 1440x900 desktop canvases that self-scale to the frame) */
+  .overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6); z-index: 200; align-items: center;
+    justify-content: center; cursor: pointer; backdrop-filter: blur(4px);
+  }
+  .overlay.active { display: flex; }
+  .overlay iframe {
+    width: min(1440px, 94vw); height: min(900px, 86vh); border: none; border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3); background: #fff;
+  }
+  .overlay-close {
+    position: absolute; top: 24px; right: 32px; font-size: 13px; color: #fff;
+    cursor: pointer; background: rgba(0,0,0,0.4); border: none; padding: 8px 16px;
+    border-radius: 8px; font-family: inherit; font-weight: 600; backdrop-filter: blur(4px);
+  }
+  .overlay-close:hover { background: rgba(0,0,0,0.6); }
+</style>
+</head>
+<body>
+
+<div class="review-topbar">
+  <div class="left">
+    <a class="back-link" href="index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <div class="breadcrumb">
+      <a href="index.html">Nova Bank Copilot</a> / <span class="current">Dispute status contact Impact Review</span>
+    </div>
+  </div>
+  <div class="review-badge">Partial Alignment</div>
+</div>
+
+<div class="review-layout">
+
+  <!-- Left: Flow screens -->
+  <div class="flow-panel">
+    <div class="flow-screens">
+      <div class="screen-slot">
+        <span class="screen-label">Open cases</span>
+        <div class="screen-wrapper" onclick="openScreen('01-queue.html')">
+          <iframe src="01-queue.html?embed" scrolling="no"></iframe>
+        </div>
+        <span class="screen-number">Screen 1</span>
+      </div>
+      <div class="screen-slot">
+        <span class="screen-label">Case opened</span>
+        <div class="screen-wrapper" onclick="openScreen('02-case-open.html')">
+          <iframe src="02-case-open.html?embed" scrolling="no"></iframe>
+        </div>
+        <span class="screen-number">Screen 2</span>
+      </div>
+      <div class="screen-slot">
+        <span class="screen-label">Drafting</span>
+        <div class="screen-wrapper" onclick="openScreen('03-drafting.html')">
+          <iframe src="03-drafting.html?embed" scrolling="no"></iframe>
+        </div>
+        <span class="screen-number">Screen 3</span>
+      </div>
+      <div class="screen-slot">
+        <span class="screen-label">Draft ready</span>
+        <div class="screen-wrapper" onclick="openScreen('04-draft-ready.html')">
+          <iframe src="04-draft-ready.html?embed" scrolling="no"></iframe>
+        </div>
+        <span class="screen-number">Screen 4</span>
+      </div>
+      <div class="screen-slot">
+        <span class="screen-label">Source check</span>
+        <div class="screen-wrapper" onclick="openScreen('05-source-check.html')">
+          <iframe src="05-source-check.html?embed" scrolling="no"></iframe>
+        </div>
+        <span class="screen-number">Screen 5</span>
+      </div>
+      <div class="screen-slot">
+        <span class="screen-label">Reply sent</span>
+        <div class="screen-wrapper" onclick="openScreen('06-sent.html')">
+          <iframe src="06-sent.html?embed" scrolling="no"></iframe>
+        </div>
+        <span class="screen-number">Screen 6</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Critique panel -->
+  <div class="critique-panel">
+
+    <!-- KR Header -->
+    <div class="kr-header">
+      <div class="kr-label">Key Result</div>
+      <div class="kr-item ret">
+        <div class="kr-tag">KR 1: Handle time (FCR held)</div>
+        <div class="kr-text">Cut average handle time on dispute, fee and card contacts by at least 1 minute per contact, without lowering first-contact resolution.</div>
+      </div>
+      <div class="kr-model">Model: an AI copilot inside Nova Bank's desktop agent console (Egypt), laid out in three columns: queue, conversation with the copilot's draft, and the verified customer's records. It drafts a formal-Arabic reply with a citation on every claim, and only suggests actions that a human must click. Flow: a Franco-Arabic chat asking when a disputed EGP 1,200 comes back. Floor: EricaAssist's roughly 1 minute saved.</div>
+      <div class="kr-flow">
+        <span class="flow-tag">Dispute status contact</span>
+        <span>6 screens assessed</span>
+      </div>
+    </div>
+
+    <div class="alignment-section">
+      <span class="alignment-label">Design-Goal Fit</span>
+      <div style="display:flex; align-items:center;">
+        <div class="alignment-dots">
+          <div class="dot filled"></div>
+          <div class="dot filled"></div>
+          <div class="dot filled"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+        <span class="alignment-verdict">3/5</span>
+      </div>
+    </div>
+
+    <!-- Critique confidence (filled by `telos-registry set-eval` after --eval; default shows "not scored") -->
+    <!--TELOS_EVAL_START--><div style="padding:14px 24px;border-bottom:1px solid #f0f0f0;font-size:12px;color:#999;">Critique confidence not scored yet — run <code>/telos-review … --eval</code> to grade this critique's trustworthiness.</div><!--TELOS_EVAL_END-->
+
+    <!-- What serves the KRs -->
+    <div class="critique-section">
+      <h3><span class="section-icon-green">+</span> What serves the KRs</h3>
+
+      <div class="critique-item">
+        <div class="bullet green"></div>
+        <div class="text">
+          <strong>The copilot writes the formal-Arabic reply, which used to be the slowest part of the agent's job.</strong> A Franco-Arabic message comes back as a complete formal-Arabic reply in the respectful plural, with an English gloss. On a chat contact, writing that reply is the biggest block of handle time, and the copilot removes it. This is where the minute can be won.
+          <span class="screen-ref">04 Draft ready — Suggested reply</span>
+          <div class="impact-bar">
+            <span class="impact-tag aht">Handle time</span>
+            <span class="impact-tag accept">Acceptance</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="critique-item">
+        <div class="bullet green"></div>
+        <div class="text">
+          <strong>Opening the case loads a verified customer with the dispute at the top.</strong> "Verified (ID&amp;V passed) · C001" appears with D-1001's stage ("awaiting merchant") and "expected by 2026-11-06" above the transactions. The agent doesn't open a second system or re-verify, and the status answer is on screen before the copilot runs.
+          <span class="screen-ref">02 Case opened — Verified customer panel</span>
+          <div class="impact-bar">
+            <span class="impact-tag aht">Handle time</span>
+            <span class="impact-tag fcr">FCR</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="critique-item">
+        <div class="bullet green"></div>
+        <div class="text">
+          <strong>Each claim highlights its evidence, and the policy opens in the console.</strong> The D-1001 and T00018 rows turn yellow when the draft lands, and the "POL-04 §5" chip opens the policy with its version, effective date and exact quote. The agent checks the draft without leaving the console or scanning 18 transactions.
+          <span class="screen-ref">04 Draft ready · 05 Source check</span>
+          <div class="impact-bar">
+            <span class="impact-tag citation">Citation accuracy</span>
+            <span class="impact-tag accept">Acceptance</span>
+            <span class="impact-tag aht">Handle time</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="critique-item">
+        <div class="bullet green"></div>
+        <div class="text">
+          <strong>The agent edits in place, sends from the same pane, and every edit is measured.</strong> The reply is directly editable, "Send reply" posts it without copy-paste, and "Sent as drafted and logged to the audit trail" confirms it. Comparing drafted with sent text gives Phase 1 its acceptance rate at no extra cost.
+          <span class="screen-ref">04 Draft ready · 06 Reply sent</span>
+          <div class="impact-bar">
+            <span class="impact-tag aht">Handle time</span>
+            <span class="impact-tag accept">Acceptance</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="critique-item">
+        <div class="bullet green"></div>
+        <div class="text">
+          <strong>The draft never over-promises, and the escalation comes already routed.</strong> The reply ends with "the final decision rests solely with the Disputes team", a second model checks that no outcome is promised, and the escalation names its approver ("Team Leader approves"). Not making a promise the bank can't keep protects the FCR half of the KR.
+          <span class="screen-ref">04 Draft ready — reply, Suggested actions, Guardrail checks</span>
+          <div class="impact-bar">
+            <span class="impact-tag fcr">FCR</span>
+            <span class="impact-tag aht">Handle time</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- What to reconsider -->
+    <div class="critique-section">
+      <h3><span class="section-icon-amber">~</span> What to reconsider</h3>
+
+      <div class="critique-item" id="rec-1">
+        <div class="rec-num amber">1</div>
+        <div class="text">
+          <strong>Every contact starts with a wait of about 16 seconds, and the agent has to trigger it.</strong> The message is already in the case, but nothing happens until "Ask copilot" is clicked, and then screen 03 shows only "Reading policies and this customer's records…". The metrics row records 15.75s. That is a quarter of the one-minute target spent idle, on every contact.
+          <span class="screen-ref">02 Case opened → 03 Drafting</span>
+          <div class="impact-bar">
+            <span class="impact-label high">HIGH IMPACT</span>
+            <span class="impact-tag aht">Handle time</span>
+          </div>
+          <details class="how">
+            <summary>How did I get this?</summary>
+            <div class="how-body">The 15.75s comes from the latency row on screen 04. The draft only starts after the manual "Ask copilot" click on 02, even though the textarea is already filled from the case. The same row reads "Tokens in 2,458 · cached 0 · out 1,239": nothing is cached, and most of the wait is the model writing about 1,200 tokens of reply, gloss, summary and claims before anything appears. On call contacts (4 of the 9 in the queue), the agent must also type what the customer said before clicking, so the cost is higher there. Removing the wait should cut handle time by close to its full length.</div>
+          </details>
+          <div class="telos-comments" data-rec="1"></div>
+        </div>
+      </div>
+
+      <div class="critique-item" id="rec-2">
+        <div class="rec-num amber">2</div>
+        <div class="text">
+          <strong>She asks "when will my money come back?" The reply describes the process instead of saying it already has.</strong> Mariam says "still nothing", but EGP 1,200 was credited to her account on 2026-10-02 (T00018). The draft mentions the credit only in its third sentence, as <bdi dir="rtl" lang="ar">رصيد مؤقت</bdi>, and never explains that it becomes permanent if she wins or is reversed with 5 business days' notice if the dispute is declined. That rule is in POL-04 §5, which the copilot cited but didn't use. "For you" also misses the mismatch between what she believes and the record.
+          <span class="screen-ref">04 Draft ready — reply and "For you" · 05 Source check</span>
+          <div class="impact-bar">
+            <span class="impact-label high">HIGH IMPACT</span>
+            <span class="impact-tag fcr">FCR</span>
+            <span class="impact-tag aht">Handle time</span>
+          </div>
+          <details class="how">
+            <summary>How did I get this?</summary>
+            <div class="how-body">I compared the customer's words ("still nothing") with the transactions table (T00018, +1,200 on 10-02) and with the order of sentences in the reply. On screen 05 the policy panel shows the permanent/reversed rule the reply needed, one click away but not in the text. Each extra chat turn costs the agent a re-read and another reply, and a reversal she wasn't warned about becomes a new contact. Leading with the credit and explaining it should raise first-contact resolution on dispute-status chats.</div>
+          </details>
+          <div class="telos-comments" data-rec="2"></div>
+        </div>
+      </div>
+
+      <div class="critique-item" id="rec-3">
+        <div class="rec-num amber">3</div>
+        <div class="text">
+          <strong>The reply ends with an offer, and the action that carries it out sits below the Send button.</strong> <bdi dir="rtl" lang="ar">يمكنني رفع الحالة إلى المشرف</bdi> ("I can escalate") needs the customer to say "yes" before anything happens. "Send for approval" sits two cards further down, below the fold, and on 06 it is still unclicked with nothing to remind the agent. Every overdue dispute costs an extra round-trip, and a forgotten offer becomes a repeat contact.
+          <span class="screen-ref">04 Draft ready → 06 Reply sent</span>
+          <div class="impact-bar">
+            <span class="impact-label high">HIGH IMPACT</span>
+            <span class="impact-tag aht">Handle time</span>
+            <span class="impact-tag fcr">FCR</span>
+          </div>
+          <details class="how">
+            <summary>How did I get this?</summary>
+            <div class="how-body">The reply's closing clause is conditional ("I can"). The matching action is the second card below the reply, after Claims and sources, so it starts below the fold. On 06 the only change is the toast; the action button and the case state are unchanged. The customer's reply, the agent's scroll and the second message add a full chat turn, tens of seconds of agent attention, to a contact that could have closed in one.</div>
+          </details>
+          <div class="telos-comments" data-rec="3"></div>
+        </div>
+      </div>
+
+      <div class="critique-item" id="rec-4">
+        <div class="rec-num amber">4</div>
+        <div class="text">
+          <strong>The flow ends at a toast and does nothing for after-call work.</strong> Screen 06 is screen 05 plus a toast. The sent message isn't in the conversation, CASE-101 stays active, Send can still be clicked, and the "Complaint" flag has no action. The disposition, note and complaint record are all manual, even though the copilot already has every fact the wrap-up needs.
+          <span class="screen-ref">06 Reply sent</span>
+          <div class="impact-bar">
+            <span class="impact-label high">HIGH IMPACT</span>
+            <span class="impact-tag acw">After-call work</span>
+            <span class="impact-tag aht">Handle time</span>
+            <span class="impact-tag fcr">FCR</span>
+          </div>
+          <details class="how">
+            <summary>How did I get this?</summary>
+            <div class="how-body">I diffed 05 against 06: the only change is the toast. None of the six screens has a close, disposition or note step. The complaint flag matters for more than time: CBE rules require a complaint reference within 2 working days, and an unregistered complaint comes back as a new contact. After-call work is usually a large share of handle time, so a pre-filled wrap-up is one of the biggest levers left.</div>
+          </details>
+          <div class="telos-comments" data-rec="4"></div>
+        </div>
+      </div>
+
+      <div class="critique-item" id="rec-5">
+        <div class="rec-num amber">5</div>
+        <div class="text">
+          <strong>The agent reads the same facts three times, and the Send button sits right at the fold.</strong> "For you", the Arabic reply and the English gloss repeat the same five facts. Nine all-green guardrail rows and a duplicated customer message (bubble plus textarea) push Send to the bottom edge of a 900px screen. Reading and scrolling count as handle time too.
+          <span class="screen-ref">04 Draft ready</span>
+          <div class="impact-bar">
+            <span class="impact-label medium">MEDIUM IMPACT</span>
+            <span class="impact-tag aht">Handle time</span>
+            <span class="impact-tag accept">Acceptance</span>
+          </div>
+          <details class="how">
+            <summary>How did I get this?</summary>
+            <div class="how-body">I estimated the center column's heights from the CSS: about 240px for the conversation block (the bubble plus a textarea of at least 62px holding the same text), about 145px for "For you" and about 400px for the reply card. That puts "Send reply" near y≈850 of 900. The "For you" text and the EN gloss state the same stage, dates, credit and escalation. Cutting the duplicates also shortens the 1,239 output tokens behind the wait in rec 1.</div>
+          </details>
+          <div class="telos-comments" data-rec="5"></div>
+        </div>
+      </div>
+
+      <div class="critique-item" id="rec-6">
+        <div class="rec-num amber">6</div>
+        <div class="text">
+          <strong>Citations sit in a separate English list, not in the Arabic reply the agent is checking.</strong> To check a sentence, the agent scrolls to Claims and sources, reads the claim in English and matches it back to the Arabic. The first fact also shows two identical "D-1001" chips. Cross-referencing two languages across two cards slows every check and makes a wrong claim easier to miss.
+          <span class="screen-ref">04 Draft ready — reply vs. Claims and sources</span>
+          <div class="impact-bar">
+            <span class="impact-label medium">MEDIUM IMPACT</span>
+            <span class="impact-tag citation">Citation accuracy</span>
+            <span class="impact-tag accept">Acceptance</span>
+            <span class="impact-tag aht">Handle time</span>
+          </div>
+          <details class="how">
+            <summary>How did I get this?</summary>
+            <div class="how-body">The reply element holds plain text with only number spans (&lt;bdi&gt;) and no links. Every chip is in the separate card further down. With five claims, a careful agent matches back and forth five times per draft. Inline markers make each check shorter and should raise the share of drafts that are checked and sent unedited.</div>
+          </details>
+          <div class="telos-comments" data-rec="6"></div>
+        </div>
+      </div>
+
+      <div class="critique-item" id="rec-7">
+        <div class="rec-num amber">7</div>
+        <div class="text">
+          <strong>The escalation depends on a "today" the agent never sees.</strong> "For you" reasons "as of today (2026-11-07)", while the record says "expected by 2026-11-06", and no screen shows the console's date. Reviewed on 6 November, the reply tells Mariam a deadline "has passed" when it is actually today. The guardrail passes because that date isn't a cited source.
+          <span class="screen-ref">04 Draft ready — "For you", claim 4, Suggested actions</span>
+          <div class="impact-bar">
+            <span class="impact-label medium">MEDIUM IMPACT</span>
+            <span class="impact-tag citation">Citation accuracy</span>
+            <span class="impact-tag fcr">FCR</span>
+          </div>
+          <details class="how">
+            <summary>How did I get this?</summary>
+            <div class="how-body">The claim "expected resolution date ... 2026-11-06, which has passed" cites D-1001, which proves the date but not that it has passed. The date it's compared against appears only in the "For you" text. If the console clock is set ahead for Demo Day, this is harmless in the demo. In production, a wrong "overdue" sends needless escalations to Team Leaders and tells customers something untrue, and both come back as contacts.</div>
+          </details>
+          <div class="telos-comments" data-rec="7"></div>
+        </div>
+      </div>
+
+      <div class="critique-item" id="rec-8">
+        <div class="rec-num amber">8</div>
+        <div class="text">
+          <strong>Demo features are sitting in the agent's working view.</strong> "Try to break it." next to Ask copilot, and the latency, "$0.0795", token and model row under every draft, suit a Demo Day panel. In production they invite agents to test the tool rather than serve customers, and encourage rationing a tool they can see is priced per use.
+          <span class="screen-ref">02 Case opened · 04 Draft ready</span>
+          <div class="impact-bar">
+            <span class="impact-label medium">MEDIUM IMPACT</span>
+            <span class="impact-tag accept">Acceptance</span>
+            <span class="impact-tag aht">Handle time</span>
+          </div>
+          <details class="how">
+            <summary>How did I get this?</summary>
+            <div class="how-body">The hint shares a row with the primary button on screens 02 to 06, and the metrics row closes the draft column on 04 to 06. Neither helps the agent answer the customer. Acceptance rate is a Phase 1 metric, and agents ration a tool they can see is priced per use.</div>
+          </details>
+          <div class="telos-comments" data-rec="8"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Suggestions -->
+    <div class="critique-section">
+      <h3><span class="section-icon-blue">*</span> Suggestions tied to the KRs</h3>
+
+      <div class="critique-item" id="rec-9">
+        <div class="rec-num blue">9</div>
+        <div class="text">
+          <strong>Start the draft when the case opens, stream the reply first, and keep Send locked until the checks pass.</strong> Run the copilot when the case is assigned, mark "Draft ready" on the queue card, stream the Arabic reply first, and turn on prompt caching ("cached 0" today). "Ask copilot" becomes regenerate. Nothing is sent until the agent clicks.
+          <div class="impact-bar">
+            <span class="impact-tag aht">Handle time</span>
+          </div>
+          <details class="how">
+            <summary>How did I get this?</summary>
+            <div class="how-body">This answers rec 1 directly. Pre-generating moves the 15.75s off the agent's clock and into queue time. Streaming means even a draft that wasn't pre-generated is readable within a few seconds, and caching cuts processing time on every request. The agent stays in control because Send stays manual and locked until the checks pass. For calls, pair this with a short capture field or a live transcript so the draft doesn't wait for the agent to finish typing.</div>
+          </details>
+          <div class="telos-comments" data-rec="9"></div>
+        </div>
+      </div>
+
+      <div class="critique-item" id="rec-10">
+        <div class="rec-num blue">10</div>
+        <div class="text">
+          <strong>Lead with the answer, explain "provisional", and say what happens next.</strong> The reply pattern becomes: (1) "The EGP 1,200 has been in your account since 2 October as a provisional credit"; (2) one line from POL-04 §5 on what makes it permanent or reverses it; (3) the next step and when she'll hear back. Add a heads-up line to "For you" when the customer's words contradict the record, and add this case to the golden eval set.
+          <div class="impact-bar">
+            <span class="impact-tag fcr">FCR</span>
+            <span class="impact-tag aht">Handle time</span>
+          </div>
+          <details class="how">
+            <summary>How did I get this?</summary>
+            <div class="how-body">This answers rec 2 directly. Her literal question is "when?", and the true answer is "already, provisionally". Putting that first answers her in one turn, and explaining the reversal rule up front avoids a surprise later. The heads-up line gives the agent the one sentence to say on a call. Every fact comes from sources the copilot already cites (T00018 and POL-04 §5), so citation accuracy is unaffected.</div>
+          </details>
+          <div class="telos-comments" data-rec="10"></div>
+        </div>
+      </div>
+
+      <div class="critique-item" id="rec-11">
+        <div class="rec-num blue">11</div>
+        <div class="text">
+          <strong>Put the suggested action next to Send, and make the reply match what the agent actually did.</strong> When the agent clicks "Send for approval", change the closing line from an offer to a statement ("I have asked a supervisor to review your dispute; you will hear by &lt;date&gt;"). If the agent sends without requesting it, keep an "Escalation offered, not requested" marker. These stay two human clicks, and nothing runs automatically.
+          <div class="impact-bar">
+            <span class="impact-tag aht">Handle time</span>
+            <span class="impact-tag fcr">FCR</span>
+          </div>
+          <details class="how">
+            <summary>How did I get this?</summary>
+            <div class="how-body">This answers rec 3 directly. When the reply reports an action already requested, the "yes please" round-trip disappears. Keeping two clicks preserves the suggestions-only rule and the Team Leader approval, and the marker covers the forgotten offer seen on screen 06. The date in the statement must come from the policy SLA, not from the model.</div>
+          </details>
+          <div class="telos-comments" data-rec="11"></div>
+        </div>
+      </div>
+
+      <div class="critique-item" id="rec-12">
+        <div class="rec-num blue">12</div>
+        <div class="text">
+          <strong>Replace the toast with a pre-filled wrap-up card that closes the case in one click.</strong> After Send, add the sent message to the conversation, lock Send, and pre-fill the intent, D-1001, actions requested, the complaint flag with a CBE reference, and a two-line note. "Close and next" opens the next case with its draft waiting. After-call work turns from typing into checking.
+          <div class="impact-bar">
+            <span class="impact-tag acw">After-call work</span>
+            <span class="impact-tag aht">Handle time</span>
+            <span class="impact-tag fcr">FCR</span>
+          </div>
+          <details class="how">
+            <summary>How did I get this?</summary>
+            <div class="how-body">This answers rec 4 directly. Every wrap-up field already exists in the draft response: the intent tag, claims, actions and flags. Pre-filling them adds no new model work and removes typing from after-call work, the part of handle time this flow currently ignores. Registering the complaint in the same step meets the CBE 2-working-day reference rule and stops it coming back as a new contact. "Close and next", combined with pre-generated drafts, carries the time saved from one contact to the next.</div>
+          </details>
+          <div class="telos-comments" data-rec="12"></div>
+        </div>
+      </div>
+
+      <div class="critique-item" id="rec-13">
+        <div class="rec-num blue">13</div>
+        <div class="text">
+          <strong>Cut the column down to one briefing line, the reply, and one line of checks.</strong> Shrink "For you" to the key fact and the recommended step, collapse the English gloss by default, replace the nine guardrail rows with "9/9 checks passed" (expanding on any failure), and hide the duplicate textarea on chat cases. Send and the action then sit above the fold.
+          <div class="impact-bar">
+            <span class="impact-tag aht">Handle time</span>
+            <span class="impact-tag accept">Acceptance</span>
+          </div>
+          <details class="how">
+            <summary>How did I get this?</summary>
+            <div class="how-body">This answers rec 5 directly. Each change removes a block the agent reads or scrolls past on every contact, and nothing is lost: the gloss and the checks are one click away, and failures still demand attention. A shorter "For you" and no default gloss also mean fewer output tokens, which helps the latency in rec 1.</div>
+          </details>
+          <div class="telos-comments" data-rec="13"></div>
+        </div>
+      </div>
+
+      <div class="critique-item" id="rec-14">
+        <div class="rec-num blue">14</div>
+        <div class="text">
+          <strong>Put numbered citation markers inside the Arabic reply.</strong> After each sentence, show a small chip ([1], [2] and so on) linked to its claim. Hovering it highlights the record row or opens the policy excerpt, the way the POL-04 §5 chip does today. Remove duplicate chips. The agent checks each sentence where they're reading it.
+          <div class="impact-bar">
+            <span class="impact-tag citation">Citation accuracy</span>
+            <span class="impact-tag accept">Acceptance</span>
+            <span class="impact-tag aht">Handle time</span>
+          </div>
+          <details class="how">
+            <summary>How did I get this?</summary>
+            <div class="how-body">This answers rec 6 directly. The agent no longer translates between an English list and the Arabic text to check a claim. Row highlighting and the policy panel already exist on screens 04 and 05, so this reuses them. Faster checks should raise both the share of drafts checked and the acceptance rate.</div>
+          </details>
+          <div class="telos-comments" data-rec="14"></div>
+        </div>
+      </div>
+
+      <div class="critique-item" id="rec-15">
+        <div class="rec-num blue">15</div>
+        <div class="text">
+          <strong>Calculate deadlines in code, show the reference date, and cite it.</strong> Show "Today: 6 Nov 2026" in the console. Have the backend work out "overdue by N days" or "due today" and pass it in as a cited fact. Suggest escalation only once the expected date has actually passed, and say "due today" when it hasn't.
+          <div class="impact-bar">
+            <span class="impact-tag citation">Citation accuracy</span>
+            <span class="impact-tag fcr">FCR</span>
+          </div>
+          <details class="how">
+            <summary>How did I get this?</summary>
+            <div class="how-body">This answers rec 7 directly. Calculating the deadline in code removes a whole class of model error, and citing the result lets the "Numbers match the sources" guardrail cover the claim that triggers the escalation. A visible reference date lets the agent confirm it at a glance and keeps unneeded escalations away from Team Leaders.</div>
+          </details>
+          <div class="telos-comments" data-rec="15"></div>
+        </div>
+      </div>
+
+      <div class="critique-item" id="rec-16">
+        <div class="rec-num blue">16</div>
+        <div class="text">
+          <strong>Put the demo features behind a demo-mode switch.</strong> Keep "Try to break it." and the latency, cost and token row for the Demo Day panel, behind a demo flag or a supervisor/QA view. In the agent build, send cost and latency to an analytics dashboard. The panel needs to see cost and robustness; agents need to see the customer.
+          <div class="impact-bar">
+            <span class="impact-tag accept">Acceptance</span>
+            <span class="impact-tag aht">Handle time</span>
+          </div>
+          <details class="how">
+            <summary>How did I get this?</summary>
+            <div class="how-body">This answers rec 8 directly. The demo still shows the business-case evidence (cost per draft feeds the business case workbook), but agents in production aren't prompted to ration the tool or try to break it. That protects the acceptance rate the handle-time saving depends on.</div>
+          </details>
+          <div class="telos-comments" data-rec="16"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expert Feedback -->
+    <div class="critique-section">
+      <h3 style="color: #555;">Expert Feedback</h3>
+      <div style="font-size: 12px; color: #999; margin-bottom: 10px;">
+        Share feedback the critique missed, add context from your domain expertise, or flag considerations for the next review.
+      </div>
+      <div class="telos-comments" data-rec="general"></div>
+    </div>
+
+    <div class="critique-footer">
+      <span>Open cases → Reply sent (6 screens)</span>
+      <span>2026-11-06</span>
+    </div>
+
+  </div>
+</div>
+
+<!-- Overlay for full-size screen preview -->
+<div class="overlay" id="overlay" onclick="closeScreen()">
+  <button class="overlay-close" onclick="closeScreen()">ESC to close</button>
+  <iframe id="overlay-frame" src="" scrolling="yes"></iframe>
+</div>
+
+<script>
+  function openScreen(file) {
+    document.getElementById('overlay-frame').src = file + '?embed';
+    document.getElementById('overlay').classList.add('active');
+  }
+  function closeScreen() {
+    document.getElementById('overlay').classList.remove('active');
+    document.getElementById('overlay-frame').src = '';
+  }
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeScreen();
+  });
+  // Scale the six-screen strip to fit the flow panel (uses the template's transform-origin hook).
+  function fitFlow() {
+    var p = document.querySelector('.flow-panel'), f = document.querySelector('.flow-screens');
+    if (!p || !f) return;
+    f.style.transform = 'none';
+    var s = Math.min(1, (p.clientWidth - 48) / f.scrollWidth, (p.clientHeight - 48) / f.scrollHeight);
+    f.style.transform = 'scale(' + s + ')';
+  }
+  addEventListener('load', fitFlow);
+  addEventListener('resize', fitFlow);
+</script>
+
+<link rel="stylesheet" href="comments.css">
+<script src="comments.js"></script>
+<script>initComments('nova-bank-copilot/dispute-status-contact');</script>
+
+</body>
+</html>

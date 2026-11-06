@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Walkthrough - Dispute status contact</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f5f5f5;
+    color: #1a1a1a;
+    height: 100vh;
+    overflow: hidden;
+    user-select: none;
+  }
+  .topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    z-index: 100;
+    background: rgba(245,245,245,0.85);
+    backdrop-filter: blur(12px);
+  }
+  .topbar .left { display: flex; align-items: center; gap: 12px; }
+  .close-btn {
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    background: #e8e8e8;
+    border: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .close-btn:hover { background: #ddd; }
+  .close-btn svg { width: 16px; height: 16px; color: #555; }
+  .breadcrumb { font-size: 13px; color: #999; }
+  .breadcrumb a { color: #999; text-decoration: none; }
+  .breadcrumb a:hover { color: #00a862; }
+  .breadcrumb .current { color: #1a1a1a; font-weight: 600; }
+  .step-num { font-size: 13px; color: #999; }
+  .step-num .n { color: #1a1a1a; font-weight: 700; }
+
+  .screen-area {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .slide {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s ease;
+    will-change: transform, opacity;
+  }
+  .slide.active { transform: translateX(0); opacity: 1; pointer-events: auto; }
+  .slide.left { transform: translateX(-120%); opacity: 0; pointer-events: none; }
+  .slide.right { transform: translateX(120%); opacity: 0; pointer-events: none; }
+  .slide-label {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 2px;
+    color: rgba(255,255,255,0.35);
+  }
+  .phone {
+    width: 375px; height: 812px;
+    border-radius: 40px; overflow: hidden;
+    border: 6px solid #2c3e50;
+    background: #fff; cursor: pointer;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.05);
+    transition: transform 0.15s;
+    position: relative;
+  }
+  .phone:hover { transform: scale(1.008); }
+  .phone:active { transform: scale(0.995); }
+  .phone iframe {
+    width: 375px; height: 812px; border: none;
+    pointer-events: none;
+  }
+  .phone .ripple {
+    position: absolute; border-radius: 50%;
+    background: rgba(0,168,98,0.3);
+    transform: scale(0);
+    animation: ripple-anim 0.5s ease-out;
+    pointer-events: none;
+  }
+  @keyframes ripple-anim { to { transform: scale(4); opacity: 0; } }
+  .slide-hint {
+    font-size: 12px; color: rgba(255,255,255,0.2);
+    display: flex; align-items: center; gap: 6px; height: 18px;
+  }
+  .slide-hint svg { width: 14px; height: 14px; }
+  .bottom-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px; gap: 16px; z-index: 100;
+  }
+  .dots { display: flex; gap: 8px; }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    transition: all 0.3s; cursor: pointer;
+  }
+  .dot.active { background: #00a862; width: 24px; border-radius: 4px; }
+  .keys {
+    position: fixed; bottom: 20px; right: 28px;
+    font-size: 10px; color: rgba(255,255,255,0.15);
+    display: flex; gap: 10px; z-index: 100;
+  }
+  .keys kbd {
+    background: rgba(255,255,255,0.08);
+    padding: 2px 5px; border-radius: 3px; font-family: inherit;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="left">
+    <button class="close-btn" onclick="location.href='../../index.html'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+    <div class="breadcrumb">
+      <a href="index.html">Nova Bank Copilot</a> / <span class="current">Dispute status contact Walkthrough</span>
+    </div>
+  </div>
+  <div class="step-num"><span class="n" id="step-n">1</span> / 6</div>
+</div>
+
+<div class="screen-area">
+  <div class="slide active" id="slide-0">
+    <div class="slide-label">Open cases</div>
+    <div class="phone" onclick="advance(event)">
+      <iframe src="01-queue.html?embed" scrolling="no"></iframe>
+    </div>
+    <div class="slide-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:scaleX(-1)"><path d="M5 12h14M13 6l6 6-6 6"/></svg> Tap to continue</div>
+  </div>
+  <div class="slide right" id="slide-1">
+    <div class="slide-label">Case opened</div>
+    <div class="phone" onclick="advance(event)">
+      <iframe src="02-case-open.html?embed" scrolling="no"></iframe>
+    </div>
+    <div class="slide-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:scaleX(-1)"><path d="M5 12h14M13 6l6 6-6 6"/></svg> Tap to continue</div>
+  </div>
+  <div class="slide right" id="slide-2">
+    <div class="slide-label">Drafting</div>
+    <div class="phone" onclick="advance(event)">
+      <iframe src="03-drafting.html?embed" scrolling="no"></iframe>
+    </div>
+    <div class="slide-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:scaleX(-1)"><path d="M5 12h14M13 6l6 6-6 6"/></svg> Tap to continue</div>
+  </div>
+  <div class="slide right" id="slide-3">
+    <div class="slide-label">Draft ready</div>
+    <div class="phone" onclick="advance(event)">
+      <iframe src="04-draft-ready.html?embed" scrolling="no"></iframe>
+    </div>
+    <div class="slide-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:scaleX(-1)"><path d="M5 12h14M13 6l6 6-6 6"/></svg> Tap to continue</div>
+  </div>
+  <div class="slide right" id="slide-4">
+    <div class="slide-label">Source check</div>
+    <div class="phone" onclick="advance(event)">
+      <iframe src="05-source-check.html?embed" scrolling="no"></iframe>
+    </div>
+    <div class="slide-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:scaleX(-1)"><path d="M5 12h14M13 6l6 6-6 6"/></svg> Tap to continue</div>
+  </div>
+  <div class="slide right" id="slide-5">
+    <div class="slide-label">Reply sent</div>
+    <div class="phone" onclick="advance(event)">
+      <iframe src="06-sent.html?embed" scrolling="no"></iframe>
+    </div>
+    <div class="slide-hint">End of flow</div>
+  </div>
+</div>
+
+<div class="bottom-bar">
+  <div class="dots">
+    <div class="dot active" onclick="goTo(0)"></div>
+    <div class="dot" onclick="goTo(1)"></div>
+    <div class="dot" onclick="goTo(2)"></div>
+    <div class="dot" onclick="goTo(3)"></div>
+    <div class="dot" onclick="goTo(4)"></div>
+    <div class="dot" onclick="goTo(5)"></div>
+  </div>
+</div>
+
+<div class="keys">
+  <span><kbd>Esc</kbd> Exit</span>
+</div>
+
+<script>
+var cur = 0, total = 6;
+
+function goTo(i, e) {
+  if (i < 0 || i >= total || i === cur) return;
+  if (e) addRipple(e);
+  var dir = i > cur ? 1 : -1;
+  document.getElementById('slide-' + cur).className = 'slide ' + (dir > 0 ? 'left' : 'right');
+  document.getElementById('slide-' + i).className = 'slide active';
+  cur = i;
+  document.getElementById('step-n').textContent = cur + 1;
+  document.querySelectorAll('.dot').forEach(function(d, idx) { d.classList.toggle('active', idx === cur); });
+}
+
+function advance(e) { addRipple(e); goTo(cur + 1); }
+
+function addRipple(e) {
+  var p = e.currentTarget;
+  var r = p.getBoundingClientRect();
+  var d = document.createElement('div');
+  d.className = 'ripple';
+  d.style.width = d.style.height = '60px';
+  d.style.left = (e.clientX - r.left - 30) + 'px';
+  d.style.top = (e.clientY - r.top - 30) + 'px';
+  p.appendChild(d);
+  setTimeout(function() { d.remove(); }, 500);
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { location.href = '../../index.html'; }
+});
+</script>
+
+</body>
+</html>
