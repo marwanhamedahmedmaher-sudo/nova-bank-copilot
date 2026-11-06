@@ -80,3 +80,63 @@ def closed(evs=None):
         if cid in out["auto"]:
             out["auto"][cid]["review"] = r
     return out
+
+
+# ---- Analytics screen (control room) ------------------------------------------------------------
+IN_SCOPE = {"dispute_status", "fee_explanation", "card_replacement"}
+
+
+def ticket_baseline():
+    """Chat handle time and scope share from our synthetic tickets, the same numbers the business case uses."""
+    import csv
+    from . import store
+    rows = list(csv.DictReader(open(store.DATA / "tickets.csv", encoding="utf-8")))
+    scope = [r for r in rows if r["category"] in IN_SCOPE]
+    chats = [float(r["resolution_minutes"]) for r in scope if r["channel"] == "chat"]
+    return {"aht_chat_min": round(sum(chats) / len(chats), 1) if chats else 0,
+            "scope_share": round(len(scope) / len(rows), 2) if rows else 0,
+            "chat_share": round(len(chats) / len(scope), 2) if scope else 0}
+
+
+def analytics(assumptions, evs=None):
+    """Deflection and agent minutes saved, from the audit log.
+    Minutes saved = chats the copilot resolved alone x full chat handle time
+                  + chats an agent sent or approved with a copilot draft, or the copilot escalated, x minutes saved per assisted chat.
+    Shadow sends save nothing: the agent wrote the reply."""
+    evs = events() if evs is None else evs
+    base = ticket_baseline()
+    aht, saved = base["aht_chat_min"], float(assumptions["saved_chat_min"])
+    days = defaultdict(lambda: {"resolved": 0, "escalated": 0, "assisted": 0, "shadow": 0, "minutes": 0.0})
+    for e in evs:
+        d = days[e["ts"][:10]]
+        if e["event"] == "auto_outcome" and e["outcome"] in ("resolved", "escalated"):
+            d[e["outcome"]] += 1
+            d["minutes"] += aht if e["outcome"] == "resolved" else saved
+        elif e["event"] == "agent_send":
+            if e.get("mode") == "shadow":
+                d["shadow"] += 1
+            else:
+                d["assisted"] += 1
+                d["minutes"] += saved
+    tot = {k: sum(d[k] for d in days.values()) for k in ("resolved", "escalated", "assisted", "shadow", "minutes")}
+    outcomes = Counter(e["outcome"] for e in evs if e["event"] == "auto_outcome")
+    assessed = sum(outcomes.values())
+    handled = tot["resolved"] + tot["escalated"] + tot["assisted"] + tot["shadow"]
+    per_chat = tot["minutes"] / handled if handled else 0
+    in_scope_chats = assumptions["contacts_per_month"] * base["scope_share"] * base["chat_share"]
+    deflect_rate = tot["resolved"] / assessed if assessed else 0
+    return {
+        "baseline": base, "assumptions": assumptions,
+        "chats_handled": handled, "assessed_by_copilot": assessed,
+        "deflected": tot["resolved"], "escalated_by_copilot": tot["escalated"],
+        "deflection_pct": round(100 * deflect_rate, 1),
+        "assisted_sends": tot["assisted"], "shadow_sends": tot["shadow"],
+        "minutes_saved": round(tot["minutes"], 1), "minutes_per_chat": round(per_chat, 2),
+        "auto_outcomes": {k: outcomes.get(k, 0) for k in ("resolved", "escalated", "awaiting_approval", "needs_agent")},
+        "avg_handle_s_by_mode": handle_by_mode([e for e in evs if e["event"] == "agent_send"]),
+        "by_day": [{"day": k, **{x: round(v, 1) if x == "minutes" else v for x, v in d.items()}} for k, d in sorted(days.items())
+                   if any(d.values())],
+        "projection": {"in_scope_chats_per_month": round(in_scope_chats),
+                       "deflected_per_month": round(in_scope_chats * deflect_rate),
+                       "agent_hours_saved_per_month": round(in_scope_chats * per_chat / 60)},
+    }
