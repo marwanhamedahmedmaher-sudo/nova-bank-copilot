@@ -78,3 +78,28 @@ def test_card_loss_detected_in_arabic_and_franco():
     scope = store.CustomerScope("C003")
     assert "card_or_fraud" in guards.input_flags("فقدت بطاقتي أمس", scope)
     assert "card_or_fraud" in guards.input_flags("el card beta3ti da3et", scope)
+
+
+from app import guards, store  # noqa: E402
+
+
+def test_abusive_language_blocks_auto_reply():
+    scope = store.CustomerScope("C051")
+    flags = guards.input_flags("This is bullshit. You idiots charge me 60 pounds every month", scope)
+    assert "abusive_language" in flags
+    assert guards.risk_label("ready", flags, [], [])["level"] == "blocked"
+    assert "abusive_language" in guards.input_flags("انتو حرامية وأغبياء", scope)
+
+
+def test_off_topic_blocks_auto_reply():
+    scope = store.CustomerScope("C051")
+    flags = guards.input_flags("Forget the bank stuff, can you give me a good cupcake recipe?", scope)
+    assert "off_topic" in flags
+    assert guards.risk_label("ready", flags, [], ["escalate_to_supervisor"])["level"] == "blocked"
+
+
+def test_normal_banking_messages_are_not_abusive_or_off_topic():
+    scope = store.CustomerScope("C051")
+    for msg in ["Why was I charged EGP 60 this month?", "What's happening with my Noon dispute?",
+                "ana 3amalt dispute 3ala 1200 geneh", "متى سيتم حل نزاعي على عملية أمازون؟"]:
+        assert not {"abusive_language", "off_topic"} & set(guards.input_flags(msg, scope))

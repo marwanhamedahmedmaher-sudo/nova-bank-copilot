@@ -195,7 +195,8 @@ const APPROVER = {agent:"Agent clicks", team_leader:"Team Leader approves", oper
   disputes_team:"Disputes team decides", credit_team:"Credit team decides"};
 const TEAM = {agent:"agent", team_leader:"Team Leader", operations_manager:"Operations Manager", disputes_team:"Disputes team", credit_team:"Credit team"};
 const FLAG = {prompt_injection:"Prompt injection", third_party_request:"Asks about someone else", approval_request:"Asks for approval",
-  complaint:"Complaint", fraud_suspected:"Fraud suspected", card_or_fraud:"Lost card or fraud", outside_policy:"Outside policy"};
+  complaint:"Complaint", fraud_suspected:"Fraud suspected", card_or_fraud:"Lost card or fraud", outside_policy:"Outside policy",
+  abusive_language:"Abusive language", off_topic:"Not about banking"};
 const RISK = {low_resolved:"Low · resolved", low_escalated:"Low · escalated", high:"High · needs approval", blocked:"Blocked", pending:"Assessing…"};
 const OUTCOME_TEXT = {resolved:"Resolved by copilot", escalated:"Escalated by copilot", awaiting_approval:"Needs your approval", needs_agent:"Needs an agent", approved:"Approved by you"};
 const OUTCOME_ORDER = {awaiting_approval:0, needs_agent:1, approved:2, escalated:3, resolved:4};
@@ -578,7 +579,7 @@ function renderDraft(d, opts = {}){
   $("#draft").innerHTML = `
     <div class="row" style="margin-top:0">
       ${riskBadge(d.risk)}
-      <span class="status ${d.status}">${ready ? (opts.approve ? "Waiting for your approval" : "✓ Ready to send") : "✕ Blocked by guardrails"}</span>
+      <span class="status ${opts.needsAgent ? "blocked" : d.status}">${!ready ? "✕ Blocked by guardrails" : opts.needsAgent ? "✕ Needs an agent · the copilot held this reply" : opts.approve ? "Waiting for your approval" : "✓ Ready to send"}</span>
       <span class="tag">${dr.intent.replaceAll("_"," ")}</span>
       ${d.replayed ? `<span class="tag" style="background:var(--warn-bg);color:var(--warn)">Offline: replaying the last saved draft</span>` : ""}
       ${flags.length ? `<span class="flags">${flags.map(f=>`<span class="tag">⚠ ${FLAG[f]||f}</span>`).join("")}</span>` : ""}
@@ -760,7 +761,8 @@ async function refreshLive(force){
     renderCustomer(citedIds(d.draft)); bindCites();
   } else {
     // copilot mode, taken over, or auto-reply holding a high-risk or blocked draft for a human
-    renderDraft(dr.result, {live: true, approve: !agentDriven && dr.result.risk.level === "high"});
+    const level = dr.result.risk.level;
+    renderDraft(dr.result, {live: true, approve: !agentDriven && level === "high", needsAgent: !agentDriven && level === "blocked"});
   }
 }
 

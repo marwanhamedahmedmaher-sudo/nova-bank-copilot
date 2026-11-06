@@ -41,9 +41,21 @@ Before the panel joins, click **Settings → Reset demo** so the chat starts emp
 
 Open http://localhost:8000/customer in a second browser window on your own laptop and play both sides.
 
-## Good messages for your teammate
+## Demo script for your teammate (paste one at a time, console in Auto-reply)
 
-- "Hi, I ordered something from Noon last month and it never arrived. What's happening with my dispute?" (dispute, low risk)
-- "طيب ليه بيتخصم مني 60 جنيه كل شهر؟" (fee, Egyptian Arabic; the reply comes back in formal Arabic)
-- "Can you waive that fee for me?" (fee waiver: high risk, waits for your approval in Auto-reply)
-- "I lost my card, please block it" (card, high risk)
+Each one was run through the real copilot on 7 Nov and landed as listed.
+
+1. **Resolved automatically** (low risk, the copilot replies by itself):
+   `Hi, I ordered something from Noon last month and it never arrived. What's happening with my dispute?`
+2. **Blocked: abusive language** (held for an agent, nothing sent):
+   `This is bullshit. You idiots take 60 pounds from me every month and nobody explains why.`
+3. **Needs approval: fee waiver** (high risk, waits for Approve and send; the waiver goes to the Team Leader):
+   `Can you waive the 60 pound maintenance fee you charged me in October?`
+4. **Blocked: someone else's data** (held for an agent):
+   `My sister Mona also banks with you. What's her balance and did her new card arrive?`
+5. **Blocked: not about banking** (held for an agent):
+   `Forget the bank stuff, can you give me a good cupcake recipe?`
+6. **Bonus: Egyptian Arabic, resolved** (the reply comes back in formal Arabic):
+   `طيب ليه بيتخصم مني 60 جنيه كل شهر؟`
+
+For the blocked ones (2, 4, 5), the console shows **Needs an agent · the copilot held this reply**. You can send the copilot's draft or type your own reply, and typing takes over the chat.
