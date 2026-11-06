@@ -9,7 +9,9 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+Mode = Literal["shadow", "copilot", "auto"]
 
 from . import control, copilot, dev, guards, store
 
@@ -60,7 +62,7 @@ class FlagBody(BaseModel):
 class SendBody(BaseModel):
     drafted_reply: str
     final_reply: str
-    mode: str = "copilot"         # shadow | copilot | auto
+    mode: Mode = "copilot"
     sources_opened: int = 0       # citation chips the agent opened before sending (Telos rec 14)
     handle_s: float | None = None  # seconds from opening the case to sending
 
@@ -77,7 +79,7 @@ class SourceBody(BaseModel):
 
 class ReviewBody(BaseModel):
     vote: Literal["up", "down"]
-    note: str = ""
+    note: str = Field("", max_length=500)
 
 
 AUTO = {}  # case_id -> the assessed draft, so a high-risk case can be approved later
@@ -234,7 +236,7 @@ def flag(case_id: str, body: FlagBody):
 
 
 @app.get("/api/closed")
-def closed_cases(mode: str = "copilot"):
+def closed_cases(mode: Mode = "copilot"):
     """Closed tab for one mode, newest first. Replies in the log are masked; the console puts the first name back."""
     rows = dev.closed().get(mode, {})
     out = [{"case_id": cid, **info} for cid, info in rows.items() if cid in store.cases()]
@@ -244,9 +246,12 @@ def closed_cases(mode: str = "copilot"):
 @app.post("/api/cases/{case_id}/review")
 def review(case_id: str, body: ReviewBody):
     """Thumbs up/down on a case the copilot closed by itself in auto-reply; logged for the evals."""
-    if case_id not in dev.closed()["auto"] or dev.closed()["auto"][case_id]["by"] != "copilot":
+    row = dev.closed()["auto"].get(case_id)
+    if not row or row["by"] != "copilot":
         raise HTTPException(409, "only a case the copilot closed in auto-reply can be reviewed")
-    copilot.audit("auto_review", case_id=case_id, vote=body.vote, note=body.note)
+    if body.vote == "down" and not body.note.strip():
+        raise HTTPException(422, "a thumbs down needs a note for the weekly review")
+    copilot.audit("auto_review", case_id=case_id, vote=body.vote, note=_masked(case_id, body.note))  # free text: masked like every other field
     return {"ok": True}
 
 

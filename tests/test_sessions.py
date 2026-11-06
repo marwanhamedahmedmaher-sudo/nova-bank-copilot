@@ -43,6 +43,35 @@ def test_review_rejects_case_copilot_did_not_close(api):
     assert api.post("/api/cases/CASE-104/review", json={"vote": "maybe"}).status_code == 422
 
 
+def test_review_note_is_masked_and_down_needs_note(api):
+    api.canned["CASE-104"] = fake_result("CASE-104")
+    api.post("/api/cases/CASE-104/auto")
+    assert api.post("/api/cases/CASE-104/review", json={"vote": "down"}).status_code == 422
+    api.post("/api/cases/CASE-104/review", json={"vote": "down", "note": "call him on 01012345678"})
+    note = [e for e in api.events() if e["event"] == "auto_review"][-1]["note"]
+    assert "01012345678" not in note
+
+
+def test_review_rejected_for_approved_case(api):
+    api.canned["CASE-107"] = fake_result("CASE-107", actions=["request_fee_waiver"])
+    api.post("/api/cases/CASE-107/auto")
+    api.post("/api/cases/CASE-107/approve", json={"final_reply": "Hello Mariam"})
+    assert api.post("/api/cases/CASE-107/review", json={"vote": "up"}).status_code == 409
+
+
+def test_unknown_mode_rejected(api):
+    assert api.get("/api/closed?mode=bogus").status_code == 422
+
+
+def test_review_before_reset_not_attached_after(api):
+    api.canned["CASE-104"] = fake_result("CASE-104")
+    api.post("/api/cases/CASE-104/auto")
+    api.post("/api/cases/CASE-104/review", json={"vote": "up"})
+    api.post("/api/demo/reset")
+    api.post("/api/cases/CASE-104/auto")
+    assert "review" not in closed(api, "auto")["CASE-104"]
+
+
 def test_reset_reopens_everything(api):
     api.post("/api/cases/CASE-101/send", json={"drafted_reply": "a", "final_reply": "b", "mode": "copilot"})
     api.post("/api/demo/reset")
