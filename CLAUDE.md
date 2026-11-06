@@ -34,6 +34,7 @@ Phase 2 (roadmap): the same engine goes customer-facing in the app for the lowes
 - Agent edit report (share of each draft agents changed when sending or flagging, blind sends, handle time by mode, from the audit log): `.venv\Scripts\python -m evals.edit_report [YYYY-MM-DD]`
 - Tests (no API calls; install once with `.venv\Scripts\python -m pip install -r requirements-dev.txt`): `.venv\Scripts\python -m pytest -q`
 - Console modes (header): Shadow (copilot drafts silently, agent replies), Copilot (Phase 1), Auto-reply (Phase 2 preview: risk labels from `guards.risk_label`; low risk resolved or escalated, high risk waits for approval). Dev mode toggle shows cost, guardrails, risk rule and the dev panel.
+- Live chat (remote Demo Day): a teammate plays Nourhan Nahnoush (CASE-110) at `/customer` on another laptop through a Cloudflare tunnel with `DEMO_PASSWORD` set. Steps in `docs/live-chat-demo.md`.
 - Business case workbook: `.venv\Scripts\python demo\business_case.py <measured USD per draft>`
 
 ## Research findings that shape the design (30 Oct, see `research/`)

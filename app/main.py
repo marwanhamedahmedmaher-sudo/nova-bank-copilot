@@ -2,6 +2,8 @@
 import base64
 import os
 import secrets
+import threading
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
@@ -259,8 +261,190 @@ def review(case_id: str, body: ReviewBody):
 def demo_reset():
     """Reopen every case for the next demo run. Logged, not deleted: the audit log stays append-only."""
     AUTO.clear()
+    with CHAT_LOCK:
+        CHATS.clear()
     copilot.audit("demo_reset")
     return {"ok": True}
+
+
+# ---- live chat ------------------------------------------------------------------------------------
+# The customer screen (/customer, played by a teammate on another laptop) is bound server-side to one
+# verified case, so it can never reach another customer (POL-17 §5). Each new customer message gets a
+# fresh copilot draft in the background; in auto-reply the copilot sends low-risk replies by itself
+# unless the agent has taken over. Chats live in memory: a server restart starts them again.
+LIVE_CASE = "CASE-110"
+CHAT_LOCK = threading.Lock()
+CHATS = {}                    # case_id -> {"messages", "takeover", "draft", "seq"}
+CHAT_MODE = {"mode": "copilot"}  # set by the agent console's mode switch
+MAX_CONTEXT_TURNS = 8
+
+
+class ChatText(BaseModel):
+    text: str = Field(min_length=1, max_length=1000)
+
+
+class ChatReplyBody(BaseModel):
+    text: str = Field(min_length=1, max_length=2000)
+    drafted_reply: str = ""
+    sources_opened: int = 0
+    handle_s: float | None = None
+
+
+class ChatModeBody(BaseModel):
+    mode: Mode
+
+
+class TakeoverBody(BaseModel):
+    on: bool
+
+
+def _chat(case_id):
+    case = store.cases().get(case_id)
+    if not case or not case.get("live"):
+        raise HTTPException(404, "not a live chat")
+    return CHATS.setdefault(case_id, {"messages": [], "takeover": False, "draft": None, "seq": 0})
+
+
+def _add_message(chat, role, text, **extra):
+    chat["seq"] += 1
+    msg = {"id": chat["seq"], "role": role, "text": text, "ts": datetime.now(timezone.utc).isoformat(), **extra}
+    chat["messages"].append(msg)
+    return msg
+
+
+def _context_message(chat, upto_id):
+    """The latest customer message, with the turns before it as context. The whole thing is untrusted customer text."""
+    msgs = [m for m in chat["messages"] if m["id"] <= upto_id][-MAX_CONTEXT_TURNS:]
+    latest, earlier = msgs[-1]["text"], msgs[:-1]
+    if not earlier:
+        return latest
+    who = {"customer": "Customer", "agent": "Nova Bank", "copilot": "Nova Bank"}
+    history = "\n".join(f"{who[m['role']]}: {m['text']}" for m in earlier)
+    return f"Earlier in this chat, for context only:\n{history}\n\nThe customer's new message, to answer in its own language:\n{latest}"
+
+
+def _draft_for(case_id, msg_id):
+    """Background worker: draft a reply to customer message msg_id; in auto-reply, send it if the risk rule allows."""
+    with CHAT_LOCK:
+        chat = CHATS.get(case_id)
+        if not chat:
+            return
+        message = _context_message(chat, msg_id)
+    try:
+        result, error = copilot.with_risk(copilot.suggest(case_id, message)), None
+    except Exception as e:
+        result, error = None, str(e)
+    with CHAT_LOCK:
+        chat = CHATS.get(case_id)
+        if not chat or not chat["draft"] or chat["draft"]["for"] != msg_id:
+            return  # a newer customer message (or a demo reset) superseded this draft
+        draft = {"for": msg_id, "pending": False, "result": result, "error": error, "sent": False, "actions": []}
+        chat["draft"] = draft
+        level = result and result["risk"]["level"]
+        if CHAT_MODE["mode"] == "auto" and not chat["takeover"] and level in ("low_resolved", "low_escalated"):
+            _add_message(chat, "copilot", result["reply"], risk=level)
+            draft["sent"] = True
+            copilot.audit("chat_auto_send", case_id=case_id, reply=_masked(case_id, result["reply"]), risk=level)
+            if level == "low_escalated":
+                handover = [a for a in result["draft"]["suggested_actions"] if a["action"] in guards.HANDOVER_ACTIONS]
+                draft["actions"] = _submit(case_id, handover or [{"action": "log_complaint", "reason": "complaint flagged in the chat"}],
+                                           "auto_action")
+
+
+@app.get("/customer")
+def customer_page():
+    return FileResponse(STATIC / "customer.html", headers={"Cache-Control": "no-store"})
+
+
+@app.get("/api/customer/chat")
+def customer_chat(after: int = 0):
+    """What the customer sees: the conversation only. No drafts, citations, risk labels or internal notes."""
+    case = store.cases()[LIVE_CASE]
+    with CHAT_LOCK:
+        chat = _chat(LIVE_CASE)
+        typing = bool(chat["draft"] and chat["draft"]["pending"] and CHAT_MODE["mode"] == "auto" and not chat["takeover"])
+        msgs = [{k: m[k] for k in ("id", "role", "text", "ts")} for m in chat["messages"] if m["id"] > after]
+    return {"customer_name": store.customers()[case["customer_id"]]["name"], "messages": msgs, "typing": typing}
+
+
+@app.post("/api/customer/chat")
+def customer_says(body: ChatText):
+    with CHAT_LOCK:
+        chat = _chat(LIVE_CASE)
+        msg = _add_message(chat, "customer", body.text.strip())
+        chat["draft"] = {"for": msg["id"], "pending": True}
+    copilot.audit("chat_customer_message", case_id=LIVE_CASE, message=_masked(LIVE_CASE, msg["text"]))
+    threading.Thread(target=_draft_for, args=(LIVE_CASE, msg["id"]), daemon=True).start()
+    return {"id": msg["id"]}
+
+
+@app.get("/api/chats")
+def chats_summary():
+    """One line per live chat for the console's Open chats list (polled)."""
+    out = []
+    with CHAT_LOCK:
+        for cid, case in store.cases().items():
+            if case.get("live"):
+                chat = _chat(cid)
+                last = chat["messages"][-1] if chat["messages"] else None
+                out.append({"case_id": cid, "seq": chat["seq"], "last": last, "takeover": chat["takeover"],
+                            "drafting": bool(chat["draft"] and chat["draft"]["pending"])})
+    return out
+
+
+@app.get("/api/chats/{case_id}")
+def chat_detail(case_id: str):
+    with CHAT_LOCK:
+        chat = _chat(case_id)
+        return {"case_id": case_id, "seq": chat["seq"], "messages": list(chat["messages"]), "takeover": chat["takeover"],
+                "draft": chat["draft"], "mode": CHAT_MODE["mode"]}
+
+
+@app.post("/api/chats/mode")
+def chat_mode(body: ChatModeBody):
+    CHAT_MODE["mode"] = body.mode
+    return {"mode": body.mode}
+
+
+@app.post("/api/chats/{case_id}/takeover")
+def chat_takeover(case_id: str, body: TakeoverBody):
+    with CHAT_LOCK:
+        chat = _chat(case_id)
+        chat["takeover"] = body.on
+    copilot.audit("chat_takeover", case_id=case_id, on=body.on)
+    return {"takeover": body.on}
+
+
+@app.post("/api/chats/{case_id}/reply")
+def chat_reply(case_id: str, body: ChatReplyBody):
+    """The agent sends a message: their own words, or the copilot's draft as edited. Logged with the edit share."""
+    with CHAT_LOCK:
+        chat = _chat(case_id)
+        _add_message(chat, "agent", body.text.strip())
+        if chat["draft"] and not chat["draft"].get("pending"):
+            chat["draft"] = None  # answered: the next customer message gets a fresh draft
+    edit = _edit_fields(case_id, body.drafted_reply, body.text) if body.drafted_reply else {"final_reply": _masked(case_id, body.text)}
+    copilot.audit("chat_reply", case_id=case_id, mode=CHAT_MODE["mode"], sources_opened=body.sources_opened,
+                  handle_s=body.handle_s, **edit)
+    return {"edited": edit.get("edited", True), "changed_pct": edit.get("changed_pct")}
+
+
+@app.post("/api/chats/{case_id}/approve")
+def chat_approve(case_id: str, body: ChatReplyBody):
+    """Auto-reply, high risk: the agent approves the copilot's draft; the reply goes out and each action goes to its approver."""
+    with CHAT_LOCK:
+        chat = _chat(case_id)
+        draft = chat["draft"]
+        if not draft or draft.get("pending") or not draft.get("result") or draft["result"]["risk"]["level"] != "high":
+            raise HTTPException(409, "nothing waiting for approval")
+        chat["draft"] = None  # approve once
+        _add_message(chat, "agent", body.text.strip(), approved=True)
+    result = draft["result"]
+    edit = _edit_fields(case_id, result["reply"], body.text)
+    copilot.audit("chat_reply", case_id=case_id, mode="auto", approved=True, sources_opened=body.sources_opened,
+                  handle_s=body.handle_s, **edit)
+    actions = _submit(case_id, result["draft"]["suggested_actions"], "agent_action")
+    return {"sent": True, "actions": actions, "changed_pct": edit["changed_pct"]}
 
 
 @app.get("/api/dev/summary")

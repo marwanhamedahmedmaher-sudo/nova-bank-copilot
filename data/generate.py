@@ -310,6 +310,34 @@ for cs in cases:
     cs["verified"] = True
     cs["opened"] = "2026-10-30T10:00:00"
 
+# --- live chat customer (Demo Day, played by a teammate on the customer screen) -------------
+# Added after every random draw, so the rest of the dataset is unchanged. One story per intent:
+# a dispute awaiting the merchant, a monthly maintenance fee, and an active card.
+nourhan = dict(customer_id="C051", name="Nourhan Nahnoush", plan="Plus", tenure_months=27, contact_channel="chat",
+               language="en", city="Cairo", overdraft_opt_in=False, planned_overdraft_limit=0, salary_transfer=True,
+               avg_balance_last_month=38000, card_last4="6390", card_status="active", card_expiry="2028-07",
+               mobile="01127403915", national_id="29803150104127")
+customers.append(nourhan)
+by_id["C051"] = nourhan
+maintenance_fees(nourhan)  # Plus below EGP 50,000: EGP 60 a month (POL-01)
+for month in (7, 8, 9, 10):
+    add_txn("C051", date(2026, month, 25), "Salary transfer", 22000, "Income")
+t_c051 = add_txn("C051", date(2026, 10, 3), "Noon Egypt", -1850.00, "Shopping", "disputed")
+add_txn("C051", date(2026, 10, 14), "Netflix", -240.00, "Subscriptions")
+add_txn("C051", date(2026, 10, 14), "FX fee (Netflix)", -7.20, "Fees")
+add_txn("C051", date(2026, 10, 17), "Carrefour Mall of Egypt", -1240.50, "Groceries")
+add_txn("C051", date(2026, 10, 22), "Uber Egypt", -118.00, "Transport")
+add_txn("C051", date(2026, 10, 26), "ATM withdrawal - other bank", -1000, "Cash")
+add_txn("C051", date(2026, 10, 26), "ATM fee - other bank", -5, "Fees")
+add_txn("C051", date(2026, 10, 28), "Talabat", -312.00, "Food delivery", "pending")
+disputes.append(dict(dispute_id="D-1026", customer_id="C051", txn_id=t_c051, merchant="Noon Egypt", amount=1850.00,
+                     reason="Goods not received", opened="2026-10-09", stage="awaiting_merchant", last_update="2026-10-21",
+                     provisional_credit=0, expected_resolution_by="2026-11-23",
+                     notes="Claim sent to merchant's bank 2026-10-21."))
+# live=True: the conversation happens in the chat, not in a fixed message
+cases.append(dict(case_id="CASE-110", customer_id="C051", channel="chat", language="en", message="", live=True,
+                  verified=True, opened="2026-11-07T10:00:00"))
+
 
 def write_csv(name, rows):
     with open(OUT / name, "w", newline="", encoding="utf-8") as f:
