@@ -4,13 +4,14 @@ Marwan's capstone. Demo Day is **7 Nov 2026** (moved from 31 Oct): a live produc
 
 ## What we are building
 
-An AI copilot for Nova Bank's contact-center agents. It covers the three reasons behind 60% of contacts: dispute status, fee explanations and card replacement. When an agent opens a call or chat, the copilot drafts a reply grounded in Nova Bank policy and that customer's own records. Every claim carries a citation. Actions are suggestions only; the agent clicks.
+An AI copilot for Nova Bank's contact-center agents. It covers the three reasons behind 60% of contacts: dispute status, fee explanations and card replacement. When an agent opens a chat, the copilot drafts a reply grounded in Nova Bank policy and that customer's own records. Every claim carries a citation. Actions are suggestions only; the agent clicks.
 
 Phase 2 (roadmap): the same engine goes customer-facing in the app for the lowest-risk intents. Anything that moves money hands off to a human.
 
 ## Decisions (agreed with Marwan, 30 Oct)
 
 - **First users are agents.** Customer-facing comes later (Phase 2).
+- **Channel: chat only in Phase 1** (Marwan, 6 Nov). The copilot does not listen to calls. Calls join as the next phase (year 2 in the business case) with a live transcript, once speech-to-text that understands Egyptian Arabic runs in Egypt.
 - **Languages:** English, formal Arabic, Egyptian Arabic and Franco-Arabic (Arabic typed in Latin letters). Policies are written in English, so search has to work across languages and evals cover all four. Replies are always formal (Marwan, 6 Nov): formal Arabic in Arabic script for any Arabic or Franco-Arabic message, formal English for English, with the respectful plural in Arabic because the model never knows the customer's gender.
 - **Regulation drives the design.** Customer details are masked before reaching the model, every answer is logged for audit, and the design has a path to an in-country model.
 - **Money and credit:** the copilot only suggests (open dispute, order card, waive fee). The agent acts. In Phase 2 those actions escalate to a human.

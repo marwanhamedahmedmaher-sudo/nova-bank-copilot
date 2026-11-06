@@ -145,7 +145,7 @@ async function openCase(id){
   detail = await (await fetch(`/api/cases/${id}`)).json();
   const c = detail.case;
   $("#convo").innerHTML = `
-    <div class="who">Customer · ${c.channel==="call"?"live call transcript":"chat"} · ${LANG[c.language]}</div>
+    <div class="who">Customer · ${c.channel==="call"?"call, typed by the agent":"chat"} · ${LANG[c.language]}</div>
     <div class="bubble ${rtl(c.language)?"rtl":""}">${esc(c.message)}</div>
     <textarea id="msg" placeholder="Edit or type what the customer says…">${esc(c.message)}</textarea>
     <div class="row"><button class="primary" id="ask">Ask copilot</button>

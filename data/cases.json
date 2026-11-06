@@ -11,7 +11,7 @@
   {
     "case_id": "CASE-102",
     "customer_id": "C002",
-    "channel": "call",
+    "channel": "chat",
     "language": "en",
     "message": "I was charged 225 pounds in overdraft fees in one day. That's ridiculous. Why?",
     "verified": true,
@@ -38,7 +38,7 @@
   {
     "case_id": "CASE-105",
     "customer_id": "C005",
-    "channel": "call",
+    "channel": "chat",
     "language": "en",
     "message": "There's a Hilton charge twice on my account, 3,000 and 2,640. I only stayed once!",
     "verified": true,
@@ -47,7 +47,7 @@
   {
     "case_id": "CASE-106",
     "customer_id": "C006",
-    "channel": "call",
+    "channel": "chat",
     "language": "arz",
     "message": "الديسبيوت بتاعي اترفض ليه؟ أنا ما استلمتش الأوردر من جوميا أصلاً. رجعلي فلوسي دلوقتي لو سمحت",
     "verified": true,

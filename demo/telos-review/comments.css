@@ -1,0 +1,73 @@
+/* Telos Comment Widget — Giscus inline, one panel per recommendation */
+
+.telos-comments {
+  margin-top: 10px;
+  padding-top: 0;
+}
+
+.tc-toggle {
+  background: #f5f5f5;
+  border: 1px solid #e8e8e8;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #777;
+  cursor: pointer;
+  padding: 6px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 20px;
+  transition: all 0.15s;
+}
+.tc-toggle:hover {
+  background: #eee;
+  color: #333;
+  border-color: #ddd;
+}
+.tc-toggle.expanded,
+.tc-toggle.has-comments {
+  background: #e3f2fd;
+  border-color: #bbdefb;
+  color: #1565c0;
+}
+.tc-toggle.has-comments:hover {
+  background: #bbdefb;
+}
+.tc-toggle.tc-disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.tc-toggle.tc-disabled:hover {
+  background: #f5f5f5;
+  color: #777;
+  border-color: #e8e8e8;
+}
+.tc-toggle .tc-plus {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1;
+}
+.tc-toggle .tc-off {
+  font-weight: 400;
+  color: #aaa;
+}
+.tc-toggle .tc-arrow {
+  font-size: 10px;
+  margin-left: 2px;
+}
+
+.tc-panel {
+  display: none;
+  margin-top: 10px;
+  border-radius: 10px;
+  background: #fafafa;
+  border: 1px solid #eee;
+  padding: 16px;
+  min-height: 100px;
+}
+.tc-panel.open { display: block; }
+
+/* Giscus iframe sizing */
+.tc-panel .giscus { width: 100%; }
+.tc-panel .giscus-frame { width: 100% !important; }
