@@ -71,13 +71,15 @@ BLOCKING_FLAGS = {"prompt_injection", "third_party_request", "abusive_language",
 HIGH_FLAGS = {"approval_request", "fraud_suspected", "card_or_fraud"}
 
 
-def risk_label(status, input_flags, risk_flags, actions):
+def risk_label(status, input_flags, risk_flags, actions, language=None):
     """{'level': 'blocked'|'high'|'low_escalated'|'low_resolved', 'reason': one line}. Auto-reply acts only on the two low levels."""
     flags = set(input_flags) | set(risk_flags)
     if status != "ready":
         return {"level": "blocked", "reason": "a guardrail check failed, so no reply goes out"}
     if flags & BLOCKING_FLAGS:
         return {"level": "blocked", "reason": f"{', '.join(sorted(flags & BLOCKING_FLAGS))}: an agent must handle this"}
+    if language == "other":  # outside the four supported languages: the reply is never checked in that language, so a person sends it
+        return {"level": "blocked", "reason": "other_language: outside the four languages the evals cover, so an agent reviews the English translation before it goes out"}
     money = [a for a in actions if a in MONEY_ACTIONS]
     if money:
         return {"level": "high", "reason": f"{', '.join(money)} moves money or touches a card"}

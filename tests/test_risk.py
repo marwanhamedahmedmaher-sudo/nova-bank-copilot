@@ -103,3 +103,18 @@ def test_normal_banking_messages_are_not_abusive_or_off_topic():
     for msg in ["Why was I charged EGP 60 this month?", "What's happening with my Noon dispute?",
                 "ana 3amalt dispute 3ala 1200 geneh", "متى سيتم حل نزاعي على عملية أمازون؟"]:
         assert not {"abusive_language", "off_topic"} & set(guards.input_flags(msg, scope))
+
+
+def test_unsupported_language_needs_an_agent():
+    r = risk_label("ready", [], [], [], "other")
+    assert r["level"] == "blocked" and "other_language" in r["reason"]
+    assert risk_label("ready", [], [], [], "franco")["level"] == "low_resolved"
+
+
+def test_unsupported_language_label_reaches_the_draft():
+    from tests.conftest import fake_result
+    from app import copilot
+    res = fake_result("CASE-101")
+    res["draft"]["customer_language"] = "other"
+    del res["risk"]
+    assert copilot.with_risk(res)["risk"]["level"] == "blocked"
