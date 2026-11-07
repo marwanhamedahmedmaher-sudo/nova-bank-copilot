@@ -55,6 +55,11 @@ button:hover{filter:brightness(.97)}
 .tag.edited{background:var(--warn-bg);color:var(--warn)}
 [hidden]{display:none !important}
 input.note{flex:1;min-width:220px;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit}
+.pair.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:1000px){.pair.two{grid-template-columns:1fr}}
+.pair .lbl{font-size:12px;color:var(--muted);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.pair .lbl select{font:inherit;font-size:12px;padding:1px 4px}
+.reply.review{background:#fafaf6;border-color:#e6e4d6}
 .en{color:var(--muted);margin-top:8px;font-size:13.5px}
 .fact{padding:8px 0;border-bottom:1px dashed var(--line)}
 .fact:last-child{border-bottom:0}
@@ -256,7 +261,8 @@ button.bandrow:hover{background:#f4f7fb} button.bandrow.on{background:#eaf2fd;bo
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const LANG = {en:"English", ar:"Formal Arabic", arz:"Egyptian Arabic", franco:"Franco-Arabic"};
+const LANG = {en:"English", ar:"Formal Arabic", arz:"Egyptian Arabic", franco:"Franco-Arabic", other:"Other language"};
+const replyLang = l => l === "en" || l === "other" ? "en" : "ar";  // replies are formal English (also for unsupported languages) or formal Arabic
 const ACTION = {open_dispute:"Open dispute", block_card:"Block card", order_replacement_card:"Order replacement card",
   request_fee_waiver:"Request fee waiver", log_complaint:"Log complaint", escalate_to_supervisor:"Escalate to supervisor",
   refer_to_credit_team:"Refer to Credit team"};
@@ -465,7 +471,7 @@ function renderQueue(){
     else if(mode === "copilot" && drafts[c.case_id]) line = `${riskBadge(drafts[c.case_id].risk)}<span class="tag" style="background:var(--ok-bg);color:var(--ok)">Draft ready</span>`;
     const dr = drafts[c.case_id];
     const preview = mode === "copilot" && !k ? (dr
-      ? `<div class="preview" ${dr.draft.customer_language !== "en" ? 'dir="rtl"' : ''}>↳ ${esc(dr.reply)}</div>`
+      ? `<div class="preview" ${replyLang(dr.draft.customer_language) === "ar" ? 'dir="rtl"' : ''}>↳ ${esc(dr.reply)}</div>`
       : `<div class="preview none">No draft yet</div>`) : "";
     return `<div class="case ${c.case_id===current?"active":""}" data-id="${c.case_id}">
       <div class="top"><span>${esc(c.customer_name)}</span><span class="hint">${c.channel==="call"?"📞 Call":"💬 Chat"}</span></div>
@@ -567,7 +573,7 @@ function openShadow(id, bubble){
     // shadow mode: the agent must not see the copilot's view, so its risk label stays out of the queue
     if(current !== id || mode !== "shadow" || !$("#shadow-draft")) return;
     if(d.error){ $("#shadow-draft").textContent = "Copilot unavailable: " + d.error; return; }
-    const lang = d.draft.customer_language === "en" ? "en" : "ar";
+    const lang = replyLang(d.draft.customer_language);
     $("#shadow-draft").innerHTML = `<div class="row" style="margin-top:0">${riskBadge(d.risk)}<span class="tag">${d.draft.intent.replaceAll("_"," ")}</span></div>
       <div class="reply ${rtl(lang)?"rtl":""}" style="margin-top:8px">${bidi(d.reply, lang)}</div><div class="en">EN: ${esc(d.reply_in_english)}</div>
       <div class="metrics"><span>⏱ ${d.latency_s ?? "-"}s</span><span>💵 $${(d.cost_usd ?? 0).toFixed(4)}</span></div>`;
@@ -595,7 +601,7 @@ function openAuto(id, bubble){
   if(a.outcome === "needs_agent" && (a.error || a.result.status !== "ready")) return manualReply(id, a);
   if(a.outcome === "awaiting_approval" || a.outcome === "needs_agent") return renderDraft(a.result, {approve: a.outcome === "awaiting_approval"});
   // resolved or escalated by the copilot: read-only record of what went out
-  const d = a.result, lang = d.draft.customer_language === "en" ? "en" : "ar";
+  const d = a.result, lang = replyLang(d.draft.customer_language);
   $("#draft").innerHTML = `
     <div class="row" style="margin-top:0">${riskBadge(d.risk)}<span class="status ready">✓ ${OUTCOME_TEXT[a.outcome]}</span>
       <span class="tag">${d.draft.intent.replaceAll("_"," ")}</span>
@@ -679,10 +685,16 @@ function checksHtml(d){
 }
 
 function renderDraft(d, opts = {}){
-  const dr = d.draft, lang = dr.customer_language === "en" ? "en" : "ar";  // replies are formal Arabic or formal English
+  const dr = d.draft, lang = replyLang(dr.customer_language);  // replies are formal Arabic or formal English
   const flags = [...new Set([...d.input_flags, ...dr.risk_flags])];
   const ready = d.status === "ready";
   const sendLabel = opts.approve ? "Approve and send" : "Send reply";
+  // Any language: the reply goes out in the customer's language; the agent reviews (and may edit) a translation next to it.
+  const caseId = current, other = dr.customer_language === "other";
+  const custLang = dr.language_name || (lang === "en" ? "English" : "Arabic");
+  const bilingual = dr.customer_language !== "en";
+  const dirOf = t => isRtl(t) ? "ar" : "en";
+  const rlang = other ? dirOf(d.reply) : lang;
   $("#draft").innerHTML = `
     <div class="row" style="margin-top:0">
       ${riskBadge(d.risk)}
@@ -693,11 +705,15 @@ function renderDraft(d, opts = {}){
     </div>
     ${d.risk ? `<div class="reason devonly">Risk rule: ${esc(d.risk.reason)}</div>` : ""}
     <div class="card"><h3>For you</h3>${esc(dr.agent_summary)}</div>
-    <div class="card"><h3>Suggested reply · ${lang === "en" ? "Formal English" : "Formal Arabic"}</h3>
-      ${ready ? `<div class="reply ${rtl(lang)?"rtl":""}" id="reply" contenteditable="true" spellcheck="false" aria-label="Suggested reply, click to edit">${bidi(d.reply, lang)}</div>
-      <div class="row" style="margin-top:6px"><span class="hint">Click the reply to edit it. Sending or flagging logs your version next to the draft.</span>
-        <span class="tag edited" id="edited-tag" hidden>Edited</span><button id="undo" hidden>Undo edits</button></div>
-      <div class="en">EN: ${esc(d.reply_in_english)}</div>
+    <div class="card"><h3>Suggested reply</h3>
+      ${ready ? `<div class="pair ${bilingual ? "two" : ""}">
+        <div><div class="lbl">Sent to the customer · ${esc(custLang)}${lang === "en" ? "" : " (formal)"}</div>
+          <div class="reply ${rtl(rlang)?"rtl":""}" id="reply" contenteditable="true" spellcheck="false" aria-label="Reply to the customer, click to edit">${bidi(d.reply, rlang)}</div></div>
+        ${bilingual ? `<div><div class="lbl">For your review · ${other ? `<select id="review-lang" aria-label="Review language"><option>English</option><option>Arabic</option></select>` : "English"}</div>
+          <div class="reply review" id="review" contenteditable="true" spellcheck="false" aria-label="Translation for review, click to edit">${esc(d.reply_in_english)}</div></div>` : ""}
+      </div>
+      <div class="row" style="margin-top:6px"><span class="hint">${bilingual ? "Edit either side: when you click away, the other side is rewritten to match." : "Click the reply to edit it."} Sending or flagging logs your version next to the draft.</span>
+        <span class="hint" id="sync-status"></span><span class="tag edited" id="edited-tag" hidden>Edited</span><button id="undo" hidden>Undo edits</button></div>
       <div class="row"><button class="primary" id="send">${sendLabel}</button><button id="copy">Copy</button><button id="flag">Flag as wrong</button></div>
       ${opts.approve ? `<div class="hint">Approving sends this reply and submits the actions below to the approvers named in Nova's policy.</div>` : ""}`
       : `<p>This draft failed a check below, so it is hidden. Answer from the policy yourself or escalate.</p><button id="flag">Flag</button>`}
@@ -719,13 +735,41 @@ function renderDraft(d, opts = {}){
   const box = $("#reply"), words = s => s.trim().split(/\s+/).join(" ");
   const finalText = () => box ? box.innerText.trim() : d.reply;
   const isEdited = () => !!box && words(finalText()) !== words(d.reply);
+  const rev = $("#review");
+  let synced = {reply: d.reply, review: d.reply_in_english}, syncing = null;
+  const paint = (el, text) => { const l = dirOf(text); el.innerHTML = bidi(text, l); el.classList.toggle("rtl", rtl(l)); };
+  async function sync(from, force){
+    if(!rev) return;
+    const src = from === "reply" ? box : rev, dst = from === "reply" ? rev : box, text = src.innerText.trim();
+    if(!text || (!force && text === synced[from])) return;
+    const target = from === "reply" ? ($("#review-lang")?.value || "English") : custLang;
+    $("#sync-status").textContent = `Updating the ${target} side…`;
+    const job = post(`/api/cases/${caseId}/translate`, {text, target});
+    syncing = job;
+    try{
+      const r = await job;
+      if(syncing !== job || !document.body.contains(dst)) return;
+      paint(dst, r.text);
+      synced = from === "reply" ? {reply: text, review: r.text} : {reply: r.text, review: text};
+      $("#sync-status").textContent = "✓ Both sides match";
+      box.oninput();
+    }catch(e){ if(syncing === job) $("#sync-status").textContent = `Couldn't update the other side: ${e.message}`; }
+    finally{ if(syncing === job) syncing = null; }
+  }
   if(box){
     box.oninput = () => { $("#edited-tag").hidden = $("#undo").hidden = !isEdited(); };
-    $("#undo").onclick = () => { box.innerHTML = bidi(d.reply, lang); box.oninput(); };
+    box.addEventListener("blur", () => sync("reply"));
+    rev && rev.addEventListener("input", () => { $("#edited-tag").hidden = $("#undo").hidden = false; });
+    rev && rev.addEventListener("blur", () => sync("review"));
+    $("#review-lang") && ($("#review-lang").onchange = () => sync("reply", true));
+    $("#undo").onclick = () => { syncing = null; box.innerHTML = bidi(d.reply, rlang); box.classList.toggle("rtl", rtl(rlang));
+      if(rev){ rev.textContent = d.reply_in_english; rev.classList.remove("rtl"); $("#review-lang") && ($("#review-lang").value = "English"); }
+      synced = {reply: d.reply, review: d.reply_in_english}; $("#sync-status").textContent = ""; box.oninput(); };
   }
   $("#send") && ($("#send").onclick = async () => {
     const btn = $("#send"); btn.disabled = true;  // one click, one send
     try{
+    if(syncing) await syncing;  // an edit on the review side is still being carried over to the customer's language
     if(opts.live){
       const id = current, body = {text: finalText(), drafted_reply: d.reply, sources_opened: sourcesOpened, handle_s: handleSeconds()};
       const r = await post(`/api/chats/${id}/${opts.approve ? "approve" : "reply"}`, body);
@@ -859,12 +903,12 @@ async function refreshLive(force){
   } else if(dr.error){
     $("#draft").innerHTML = `<div class="card"><span class="status blocked">Copilot unavailable</span><p>${esc(dr.error)}</p><p class="hint">Reply to ${esc(first)} yourself in the box above.</p></div>`;
   } else if(mode === "shadow"){
-    const d = dr.result, lang = d.draft.customer_language === "en" ? "en" : "ar";
+    const d = dr.result, lang = replyLang(d.draft.customer_language);
     $("#draft").innerHTML = `<div class="card shadowbox devonly"><h3>Shadow draft · the agent can't see this</h3>
       <div class="row" style="margin-top:0">${riskBadge(d.risk)}<span class="tag">${d.draft.intent.replaceAll("_"," ")}</span></div>
       <div class="reply ${rtl(lang)?"rtl":""}" style="margin-top:8px">${bidi(d.reply, lang)}</div><div class="en">EN: ${esc(d.reply_in_english)}</div></div>`;
   } else if(dr.sent){
-    const d = dr.result, lang = d.draft.customer_language === "en" ? "en" : "ar";
+    const d = dr.result, lang = replyLang(d.draft.customer_language);
     $("#draft").innerHTML = `<div class="row" style="margin-top:0">${riskBadge(d.risk)}<span class="status ready">✓ Copilot replied automatically</span>
         <span class="tag">${d.draft.intent.replaceAll("_"," ")}</span></div>
       <div class="reason devonly">Risk rule: ${esc(d.risk.reason)}</div>

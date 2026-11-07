@@ -70,6 +70,11 @@ class SendBody(BaseModel):
     handle_s: float | None = None  # seconds from opening the case to sending
 
 
+class TranslateBody(BaseModel):
+    text: str = Field(min_length=1, max_length=3000)
+    target: str = Field(min_length=2, max_length=40, pattern=r"^[A-Za-z][A-Za-z \-()]*$")  # a language name, e.g. French
+
+
 class ApproveBody(BaseModel):
     final_reply: str
     handle_s: float | None = None
@@ -147,6 +152,17 @@ def suggest(case_id: str, body: SuggestBody):
         return copilot.suggest(case_id, body.message)
     except Exception as e:  # surface to the agent instead of a blank panel
         raise HTTPException(502, f"copilot unavailable: {e}")
+
+
+@app.post("/api/cases/{case_id}/translate")
+def translate(case_id: str, body: TranslateBody):
+    """The agent edited one side of the reply editor: rewrite the other side to match."""
+    if case_id not in store.cases():
+        raise HTTPException(404, "unknown case")
+    try:
+        return {"text": copilot.translate(case_id, body.text, body.target)}
+    except Exception as e:
+        raise HTTPException(502, f"translation unavailable: {e}")
 
 
 @app.post("/api/cases/{case_id}/action")

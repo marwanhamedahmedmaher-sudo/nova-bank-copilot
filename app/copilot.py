@@ -64,11 +64,12 @@ class SuggestedAction(BaseModel):
 
 class Draft(BaseModel):
     intent: Literal["dispute_status", "fee_explanation", "card_replacement", "other"]
-    customer_language: Literal["en", "ar", "arz", "franco"]
+    customer_language: Literal["en", "ar", "arz", "franco", "other"]
+    language_name: str = Field(description="The language the customer wrote in, in English, e.g. English, Arabic, French, Turkish")
     answer_found: bool = Field(description="False if the sources do not answer the question")
     agent_summary: str = Field(description="1-3 sentences in English telling the agent what is going on")
     facts: List[Fact]
-    suggested_reply: str = Field(description="What the agent can say or send: formal Arabic in Arabic script for any Arabic or Franco-Arabic message, formal English for English")
+    suggested_reply: str = Field(description="What the agent can say or send: formal Arabic in Arabic script for any Arabic or Franco-Arabic message, formal English for English, and the customer's own language (formal register) for any other language")
     reply_in_english: str = Field(description="English translation of suggested_reply, for review and audit")
     suggested_actions: List[SuggestedAction]
     risk_flags: List[Literal["prompt_injection", "third_party_request", "approval_request", "complaint",
@@ -113,7 +114,8 @@ Actions and who approves them (code enforces this):
 - Suggest only the actions this case needs.
 
 Reply style:
-- Set customer_language to how the customer wrote: en = English; ar = formal Arabic; arz = Egyptian Arabic in Arabic script; franco = Egyptian Arabic in Latin letters with numerals (3, 7, 2).
+- Set customer_language to how the customer wrote: en = English; ar = formal Arabic; arz = Egyptian Arabic in Arabic script; franco = Egyptian Arabic in Latin letters with numerals (3, 7, 2); other = any other language (French, German, Spanish, Italian, Turkish, Chinese...).
+- For other: write suggested_reply in the customer's own language, in its formal, polite register (e.g. vous in French, Sie in German, usted in Spanish), and reply_in_english as its faithful English translation. The agent reviews the English before anything goes out.
 - Always reply in a formal register. For ar, arz and franco, write suggested_reply in formal Modern Standard Arabic in Arabic script, never in Egyptian dialect or Latin letters. For en, write formal, professional English: no slang, no contractions.
 - You never know the customer's gender. In Arabic, use no gendered address (no عزيزي or عزيزتي) and address the customer in the respectful plural (حضرتكم، لكم، حسابكم), which fits anyone; write {{FIRST_NAME}} without a title.
 - 2 to 5 short sentences, courteous and plain, no internal jargon (say "the merchant's bank", not "acquirer"). Address the customer as {{FIRST_NAME}}.
@@ -216,6 +218,24 @@ def _commitment_check(draft):
     return resp.parsed_output, resp
 
 
+def translate(case_id, text, target):
+    """Translate a reply the agent edited into the target language, so both sides of the editor stay in step.
+    The text is masked like everything else that reaches a model; the first name goes back in afterwards."""
+    first = store.CustomerScope(store.cases()[case_id]["customer_id"]).first_name
+    masked = guards.mask_pii(text.replace(first, "{{FIRST_NAME}}"))
+    register = ("formal Modern Standard Arabic in Arabic script, addressing the customer in the respectful plural "
+                "(حضرتكم، لكم) with no gendered words" if target.lower() == "arabic" else f"formal, polite {target}")
+    resp = client().messages.create(
+        model=GUARD_MODEL, max_tokens=2000,
+        messages=[{"role": "user", "content":
+                   f"Translate this bank's reply to a customer into {register}. Keep the meaning exactly: add, drop or soften "
+                   "nothing. Copy {{FIRST_NAME}}, numbers, dates, amounts, card endings and IDs (D-1026, T00123, POL-04) "
+                   "exactly as written. Return only the translation.\n\n<reply>\n" + masked + "\n</reply>"}])
+    out = "".join(b.text for b in resp.content if b.type == "text").strip()
+    audit("translation", case_id=case_id, target=target, source=masked, output=out, cost_usd=round(_cost(GUARD_MODEL, resp.usage), 5))
+    return out.replace("{{FIRST_NAME}}", first)
+
+
 REPLAY = control.LOGS / "replay_cache.json"
 _replay_lock = threading.Lock()
 
@@ -229,7 +249,8 @@ def with_risk(result):
     if "risk" not in result:
         dr = result["draft"]
         result = {**result, "risk": guards.risk_label(result["status"], result["input_flags"], dr["risk_flags"],
-                                                      [a["action"] for a in dr["suggested_actions"]])}
+                                                      [a["action"] for a in dr["suggested_actions"]],
+                                                      dr.get("customer_language"))}
     return result
 
 
