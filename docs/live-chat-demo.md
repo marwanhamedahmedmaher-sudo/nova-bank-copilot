@@ -60,7 +60,7 @@ Each one was run through the real copilot on 7 Nov and landed as listed.
 6. **Bonus: Egyptian Arabic, resolved** (the reply comes back in formal Arabic):
    `طيب ليه بيتخصم مني 60 جنيه كل شهر؟`
 
-7. **Needs an agent: unsupported language** (French; the draft is in formal English, opens by saying support is in English and Arabic, and waits for the agent):
+7. **Any language: French** (needs an agent. The draft is in formal French, with an English translation beside it. Edit the English side and the French is rewritten to match, or switch the review side to Arabic. Then send):
    `Bonjour, pourquoi est-ce que vous me prélevez 60 livres chaque mois ?`
 
 For the blocked ones (2, 4, 5, 7), the console shows **Needs an agent · the copilot held this reply**. You can send the copilot's draft or type your own reply, and typing takes over the chat.
