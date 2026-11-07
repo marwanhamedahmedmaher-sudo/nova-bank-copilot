@@ -1,5 +1,6 @@
 """Agent console API.  Run:  .venv\\Scripts\\python -m uvicorn app.main:app --port 8000"""
 import base64
+import itertools
 import os
 import secrets
 import threading
@@ -242,6 +243,7 @@ def closed_cases(mode: Mode = "copilot"):
     """Closed tab for one mode, newest first. Replies in the log are masked; the console puts the first name back."""
     rows = dev.closed().get(mode, {})
     out = [{"case_id": cid, **info} for cid, info in rows.items() if cid in store.cases()]
+    out += dev.closed_chats().get(mode, [])  # ended live chats: one row per chat, keyed by chat_no
     return sorted(out, key=lambda r: r["at"], reverse=True)
 
 
@@ -276,6 +278,7 @@ LIVE_CASE = "CASE-110"
 CHAT_LOCK = threading.Lock()
 CHATS = {}                    # case_id -> {"messages", "takeover", "draft", "seq"}
 CHAT_MODE = {"mode": "copilot"}  # set by the agent console's mode switch
+CHAT_NO = itertools.count(1)  # every chat gets its own number, so an ended chat and the next one never mix
 MAX_CONTEXT_TURNS = 8
 
 
@@ -298,11 +301,38 @@ class TakeoverBody(BaseModel):
     on: bool
 
 
+class RatingBody(BaseModel):
+    chat_no: int
+    stars: int = Field(ge=1, le=5)
+
+
 def _chat(case_id):
     case = store.cases().get(case_id)
     if not case or not case.get("live"):
         raise HTTPException(404, "not a live chat")
-    return CHATS.setdefault(case_id, {"messages": [], "takeover": False, "draft": None, "seq": 0})
+    if case_id not in CHATS:
+        CHATS[case_id] = _new_chat()
+    return CHATS[case_id]
+
+
+def _new_chat(rate_for=None):
+    return {"messages": [], "takeover": False, "draft": None, "seq": 0, "no": next(CHAT_NO), "rate_for": rate_for}
+
+
+def _end_chat(case_id, ended_by):
+    """Close the conversation: its masked transcript goes to the audit log (the Closed tab reads it back),
+    the customer is asked to rate it, and the next message starts a fresh chat."""
+    with CHAT_LOCK:
+        chat = _chat(case_id)
+        if not chat["messages"]:
+            raise HTTPException(409, "nothing to end: the chat is empty")
+        handled = "agent" if any(m["role"] == "agent" for m in chat["messages"]) else "copilot"
+        transcript = [{"role": m["role"], "text": _masked(case_id, m["text"])} for m in chat["messages"]]
+        no = chat["no"]
+        CHATS[case_id] = _new_chat(rate_for=no)  # a draft still running for the old chat finds no match and is dropped
+    copilot.audit("chat_end", case_id=case_id, chat_no=no, mode=CHAT_MODE["mode"], ended_by=ended_by,
+                  handled_by=handled, transcript=transcript)
+    return {"ended": no}
 
 
 def _add_message(chat, role, text, **extra):
@@ -364,7 +394,26 @@ def customer_chat(after: int = 0):
         chat = _chat(LIVE_CASE)
         typing = bool(chat["draft"] and chat["draft"]["pending"] and CHAT_MODE["mode"] == "auto" and not chat["takeover"])
         msgs = [{k: m[k] for k in ("id", "role", "text", "ts")} for m in chat["messages"] if m["id"] > after]
-    return {"customer_name": store.customers()[case["customer_id"]]["name"], "messages": msgs, "typing": typing}
+        no, rate_for = chat["no"], chat["rate_for"]
+    return {"customer_name": store.customers()[case["customer_id"]]["name"], "messages": msgs, "typing": typing,
+            "chat_no": no, "rate_for": rate_for}
+
+
+@app.post("/api/customer/end")
+def customer_ends():
+    return _end_chat(LIVE_CASE, "customer")
+
+
+@app.post("/api/customer/rate")
+def customer_rates(body: RatingBody):
+    """The customer rates the chat that just ended (1-5 stars), once. Shown on the Closed tab and logged."""
+    with CHAT_LOCK:
+        chat = _chat(LIVE_CASE)
+        if chat["rate_for"] != body.chat_no:
+            raise HTTPException(409, "that chat is not waiting for a rating")
+        chat["rate_for"] = None
+    copilot.audit("chat_rating", case_id=LIVE_CASE, chat_no=body.chat_no, stars=body.stars)
+    return {"ok": True}
 
 
 @app.post("/api/customer/chat")
@@ -388,7 +437,8 @@ def chats_summary():
                 chat = _chat(cid)
                 last = chat["messages"][-1] if chat["messages"] else None
                 out.append({"case_id": cid, "seq": chat["seq"], "last": last, "takeover": chat["takeover"],
-                            "drafting": bool(chat["draft"] and chat["draft"]["pending"])})
+                            "drafting": bool(chat["draft"] and chat["draft"]["pending"]),
+                            "chat_no": chat["no"], "rate_for": chat["rate_for"]})
     return out
 
 
@@ -397,13 +447,18 @@ def chat_detail(case_id: str):
     with CHAT_LOCK:
         chat = _chat(case_id)
         return {"case_id": case_id, "seq": chat["seq"], "messages": list(chat["messages"]), "takeover": chat["takeover"],
-                "draft": chat["draft"], "mode": CHAT_MODE["mode"]}
+                "draft": chat["draft"], "mode": CHAT_MODE["mode"], "no": chat["no"]}
 
 
 @app.post("/api/chats/mode")
 def chat_mode(body: ChatModeBody):
     CHAT_MODE["mode"] = body.mode
     return {"mode": body.mode}
+
+
+@app.post("/api/chats/{case_id}/end")
+def chat_end(case_id: str):
+    return _end_chat(case_id, "agent")
 
 
 @app.post("/api/chats/{case_id}/takeover")

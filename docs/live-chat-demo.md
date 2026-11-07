@@ -10,6 +10,8 @@ Marwan runs the agent console. A teammate plays the customer, **Nourhan Nahnoush
   - **Auto-reply:** the copilot answers low-risk messages by itself. High risk waits for **Approve and send**. **Take over** stops the auto-replies, and typing a message yourself takes over too. **Hand back to copilot** turns them back on.
   - **Shadow:** you write every reply, and the copilot drafts silently (visible in Dev mode).
 
+- **End chat** (console chat header, or the customer's header): the chat moves to **Closed** in the current mode as "Chat N", with its masked transcript. The customer screen clears and asks for a 1-5 star rating, which shows on the closed chat. Her next message starts a fresh chat, so you can run one scenario per chat.
+
 Her records give one story per intent:
 - a Noon Egypt dispute (D-1026, EGP 1,850, awaiting the merchant, expected by 2026-11-23)
 - an EGP 60 monthly maintenance fee (Plus plan, balance below EGP 50,000)

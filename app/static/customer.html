@@ -34,13 +34,24 @@ textarea{flex:1;border:1px solid var(--line);border-radius:20px;padding:10px 14p
 textarea:focus{border-color:var(--brand-2)}
 button{border:0;background:var(--brand-2);color:#fff;border-radius:50%;width:44px;height:44px;font-size:18px;cursor:pointer;flex:none}
 button:disabled{opacity:.5;cursor:wait}
+header{display:flex;align-items:flex-start;gap:10px}
+header .sp{flex:1}
+header .end{background:rgba(255,255,255,.15);border-radius:14px;width:auto;height:auto;padding:5px 12px;font-size:12.5px;font-weight:600}
+header .end[hidden]{display:none}
+.rate{align-self:center;background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;text-align:center;max-width:300px;margin:6px 0}
+.rate b{display:block;margin-bottom:6px}
+.rate .st{display:flex;justify-content:center;gap:4px}
+.rate .st button{background:none;color:#c3ccd8;width:36px;height:36px;font-size:28px;border-radius:8px;padding:0}
+.rate .st button.on{color:#e0a100}
+.rate .hint{color:var(--muted);font-size:12.5px;margin-top:4px}
 .err{color:#b42318;font-size:12px;text-align:center;padding:4px;display:none}
 </style>
 </head>
 <body>
 <div class="phone">
-  <header><div class="logo">Nova Bank <span>· Chat</span></div>
-    <div class="who">Signed in as <b id="name">…</b> · verified in the app</div></header>
+  <header><div><div class="logo">Nova Bank <span>· Chat</span></div>
+    <div class="who">Signed in as <b id="name">…</b> · verified in the app</div></div><span class="sp"></span>
+    <button class="end" id="end" hidden>End chat</button></header>
   <div class="msgs" id="msgs">
     <div class="hello">Hi, how can we help today? Ask about a dispute, a fee or your card, in English or Arabic.</div>
     <div class="typing" id="typing"><i></i><i></i><i></i></div>
@@ -52,7 +63,7 @@ button:disabled{opacity:.5;cursor:wait}
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const isRtl = s => /[؀-ۿ]/.test(s);
-let last = 0, busy = false, lastSide = null;
+let last = 0, busy = false, lastSide = null, chatNo = null, rated = null;
 
 function add(m){
   const me = m.role === "customer";
@@ -71,13 +82,49 @@ async function poll(){
     if(!r.ok) throw new Error(r.status);
     const d = await r.json();
     $("#name").textContent = d.customer_name;
+    if(chatNo !== null && d.chat_no !== chatNo){ busy = false; return newChat(d); }  // the chat ended: start a clean one
+    chatNo = d.chat_no;
+    if(d.rate_for && rated !== d.rate_for && !$("#rate")) askRating(d.rate_for);
+    if(!d.rate_for && $("#rate") && !$("#rate").dataset.done) $("#rate").remove();
     d.messages.forEach(m => { add(m); last = Math.max(last, m.id); });
+    $("#end").hidden = last === 0;
     $("#typing").style.display = d.typing ? "block" : "none";
     if(d.messages.length || d.typing) scrollDown();
     $("#err").style.display = "none";
   }catch{ $("#err").style.display = "block"; }
   busy = false;
 }
+
+// The chat ended (by her or the agent): clear the screen, ask for a rating, and the next message opens a new chat.
+function newChat(d){
+  document.querySelectorAll("#msgs .m, #msgs .label, #rate").forEach(el => el.remove());
+  last = 0; lastSide = null; chatNo = d.chat_no; $("#end").hidden = true;
+  if(d.rate_for) askRating(d.rate_for);
+  poll();
+}
+function askRating(no){
+  $("#typing").insertAdjacentHTML("beforebegin", `<div class="rate" id="rate"><b>Your chat has ended. How did we do?</b>
+    <div class="st">${[1,2,3,4,5].map(n => `<button data-n="${n}" aria-label="${n} star${n>1?"s":""}">★</button>`).join("")}</div>
+    <div class="hint">Need anything else? Just type below to start a new chat.</div></div>`);
+  document.querySelectorAll("#rate .st button").forEach(b => {
+    b.onmouseenter = () => document.querySelectorAll("#rate .st button").forEach(x => x.classList.toggle("on", +x.dataset.n <= +b.dataset.n));
+    b.onclick = async () => {
+      try{
+        const r = await fetch("/api/customer/rate", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({chat_no:no, stars:+b.dataset.n})});
+        if(!r.ok) throw new Error(r.status);
+      }catch{ $("#err").style.display = "block"; return; }
+      rated = no;
+      $("#rate").dataset.done = "1";
+      $("#rate").innerHTML = `<b>Thank you for your feedback ${"★".repeat(+b.dataset.n)}</b><div class="hint">Need anything else? Just type below.</div>`;
+    };
+  });
+}
+$("#end").onclick = async () => {
+  if(!confirm("End this chat?")) return;
+  try{ const r = await fetch("/api/customer/end", {method:"POST"}); if(!r.ok) throw new Error(r.status); }
+  catch{ $("#err").style.display = "block"; return; }
+  poll();
+};
 
 $("#f").onsubmit = async e => {
   e.preventDefault();
