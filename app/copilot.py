@@ -24,7 +24,7 @@ MODEL = os.getenv("COPILOT_MODEL", "claude-opus-5-5")
 GUARD_MODEL = os.getenv("GUARD_MODEL", "claude-haiku-5-5")
 EFFORT = os.getenv("COPILOT_EFFORT", "low")
 TODAY = os.getenv("COPILOT_TODAY")  # pin a date (the evals pin 2026-10-30); unset = the real date
-LOG = Path(__file__).resolve().parent / "logs" / "audit.jsonl"
+LOG = control.LOGS / "audit.jsonl"
 # USD per million tokens: input, output, cache write, cache read
 PRICES = {"claude-opus-5-5": (4.0, 20.0, 5.0, 0.20), "claude-haiku-5-5": (0.10, 0.50, 0.125, 0.01)}
 
@@ -216,7 +216,7 @@ def _commitment_check(draft):
     return resp.parsed_output, resp
 
 
-REPLAY = Path(__file__).resolve().parent / "logs" / "replay_cache.json"
+REPLAY = control.LOGS / "replay_cache.json"
 _replay_lock = threading.Lock()
 
 
@@ -251,7 +251,7 @@ def suggest(case_id, message=None, agent_id="agent-07"):
         with _replay_lock:  # read-modify-write, so parallel requests don't overwrite each other
             cache = _read_replay()
             cache[key] = result
-            REPLAY.parent.mkdir(exist_ok=True)
+            REPLAY.parent.mkdir(parents=True, exist_ok=True)
             REPLAY.write_text(json.dumps(cache, ensure_ascii=False), encoding="utf-8")
     return result
 
@@ -325,7 +325,7 @@ def suggest_for(customer_id, raw_message, case_id="EVAL", channel="chat", agent_
 
 def audit(event, **fields):
     """Append-only audit trail (POL-20 §5). Holds masked text only."""
-    LOG.parent.mkdir(exist_ok=True)
+    LOG.parent.mkdir(parents=True, exist_ok=True)
     with open(LOG, "a", encoding="utf-8") as f:
         f.write(json.dumps({"ts": datetime.now(timezone.utc).isoformat(), "event": event, **fields}, ensure_ascii=False) + "\n")
 

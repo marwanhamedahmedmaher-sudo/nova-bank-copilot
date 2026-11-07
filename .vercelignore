@@ -1,0 +1,15 @@
+# Never upload secrets, the local Python install or local logs.
+.env
+.venv
+app/logs
+.git
+**/__pycache__
+.pytest_cache
+.superpowers
+# Not needed to run the console.
+research
+demo
+docs
+tests
+start-demo.bat
+render.yaml

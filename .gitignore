@@ -5,3 +5,4 @@ __pycache__/
 app/logs/
 .pytest_cache/
 .superpowers/
+.vercel

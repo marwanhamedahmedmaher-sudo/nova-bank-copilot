@@ -14,10 +14,12 @@ from copy import deepcopy
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-PATH = Path(__file__).resolve().parent / "logs" / "control.json"
+# Vercel only lets a function write to /tmp (wiped when the instance stops); everywhere else logs sit in app/logs.
+LOGS = Path("/tmp/nova-logs") if os.getenv("VERCEL") else Path(__file__).resolve().parent / "logs"
+PATH = LOGS / "control.json"
 GOLDEN = ROOT / "evals" / "golden_set.jsonl"
 RESULTS = ROOT / "evals" / "results"
-EVAL_LOG = Path(__file__).resolve().parent / "logs" / "eval_run.log"
+EVAL_LOG = LOGS / "eval_run.log"
 
 # ---- guardrails -------------------------------------------------------------------------------
 # Built-in checks from guards.check_draft and copilot.suggest_for. Locked ones are bank secrecy or
@@ -70,7 +72,7 @@ def state():
 def save(s, what, **detail):
     from . import copilot  # late import: copilot imports this module
     with _lock:
-        PATH.parent.mkdir(exist_ok=True)
+        PATH.parent.mkdir(parents=True, exist_ok=True)
         PATH.write_text(json.dumps(s, ensure_ascii=False, indent=1), encoding="utf-8")
     copilot.audit("config_change", what=what, **detail)
     return s
@@ -601,7 +603,7 @@ def run_evals(ids):
     known = {c["id"] for c in golden(sid)}
     ids = [i for i in ids if i in known]
     name = next(s["name"] for s in golden_sets() if s["id"] == sid)
-    EVAL_LOG.parent.mkdir(exist_ok=True)
+    EVAL_LOG.parent.mkdir(parents=True, exist_ok=True)
     log = open(EVAL_LOG, "w", encoding="utf-8")
     _proc["p"] = subprocess.Popen([sys.executable, "-m", "evals.run_evals", *ids], cwd=ROOT, stdout=log, stderr=subprocess.STDOUT,
                                   env={**os.environ, "PYTHONUTF8": "1", "GOLDEN_SET": str(_set_path(sid)), "GOLDEN_SET_NAME": name})
