@@ -89,3 +89,49 @@ def test_context_includes_earlier_turns(chat):
     m = main._add_message(c, "customer", "follow up")
     text = main._context_message(c, m["id"])
     assert "Customer: first question" in text and "Nova Bank: first answer" in text and text.endswith("follow up")
+
+
+# ---- ending a chat: Closed tab, customer rating, fresh chat ---------------------------------------
+def closed_chats(api, mode):
+    return [r for r in api.get(f"/api/closed?mode={mode}").json() if r.get("chat_no")]
+
+
+def test_end_chat_moves_it_to_closed_and_starts_fresh(chat):
+    chat.canned[CASE] = fake_result(CASE)
+    chat.post("/api/customer/chat", json={"text": "Where is my Noon refund?"})
+    wait_for_draft(chat)
+    chat.post(f"/api/chats/{CASE}/reply", json={"text": "Hello Nourhan, it is with the merchant."})
+    no = chat.get("/api/customer/chat").json()["chat_no"]
+    assert chat.post(f"/api/chats/{CASE}/end").json() == {"ended": no}
+    rows = closed_chats(chat, "copilot")
+    assert len(rows) == 1 and rows[0]["chat_no"] == no and rows[0]["by"] == "agent" and rows[0]["ended_by"] == "agent"
+    assert [m["role"] for m in rows[0]["transcript"]] == ["customer", "agent"]
+    assert "Nourhan" not in rows[0]["transcript"][1]["text"]  # masked in the log
+    seen = chat.get("/api/customer/chat").json()
+    assert seen["messages"] == [] and seen["chat_no"] != no and seen["rate_for"] == no
+    assert closed_chats(chat, "auto") == []  # closed in the mode it ended in
+
+
+def test_customer_ends_and_rates_once(chat):
+    chat.post("/api/customer/chat", json={"text": "hi"})
+    chat.canned[CASE] = fake_result(CASE)
+    no = chat.post("/api/customer/end").json()["ended"]
+    assert closed_chats(chat, "copilot")[0]["ended_by"] == "customer"
+    assert chat.post("/api/customer/rate", json={"chat_no": no, "stars": 6}).status_code == 422
+    assert chat.post("/api/customer/rate", json={"chat_no": no, "stars": 4}).status_code == 200
+    assert closed_chats(chat, "copilot")[0]["rating"] == 4
+    assert chat.post("/api/customer/rate", json={"chat_no": no, "stars": 1}).status_code == 409
+    assert chat.get("/api/customer/chat").json()["rate_for"] is None
+
+
+def test_empty_chat_cannot_end(chat):
+    assert chat.post(f"/api/chats/{CASE}/end").status_code == 409
+
+
+def test_auto_chat_answered_by_copilot_is_closed_by_copilot(chat):
+    main.CHAT_MODE["mode"] = "auto"
+    chat.canned[CASE] = fake_result(CASE)
+    chat.post("/api/customer/chat", json={"text": "Where is my Noon refund?"})
+    wait_for_draft(chat)
+    chat.post("/api/customer/end")
+    assert closed_chats(chat, "auto")[0]["by"] == "copilot"

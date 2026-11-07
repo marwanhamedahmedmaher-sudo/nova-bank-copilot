@@ -82,6 +82,19 @@ def closed(evs=None):
     return out
 
 
+def closed_chats(evs=None):
+    """{mode: [row]}: live chats that ended since the last reset, with the customer's rating when given."""
+    evs = _since_reset(events() if evs is None else evs)
+    ratings = {e["chat_no"]: e["stars"] for e in evs if e["event"] == "chat_rating"}
+    out = {"shadow": [], "copilot": [], "auto": []}
+    for e in evs:
+        if e["event"] == "chat_end":
+            out.setdefault(e.get("mode", "copilot"), []).append({
+                "case_id": e["case_id"], "chat_no": e["chat_no"], "at": e["ts"], "by": e["handled_by"],
+                "ended_by": e["ended_by"], "transcript": e["transcript"], "rating": ratings.get(e["chat_no"])})
+    return out
+
+
 # ---- Analytics screen (control room) ------------------------------------------------------------
 IN_SCOPE = {"dispute_status", "fee_explanation", "card_replacement"}
 

@@ -140,6 +140,7 @@ body:not(.dev) .devonly{display:none !important}
 .chatlog .who{margin:8px 4px 2px}
 .chatlog .who.me{align-self:flex-end}
 .chatlog .bubble{white-space:pre-wrap}
+.stars{color:#e0a100;letter-spacing:1px}
 .bubble.me{align-self:flex-end;background:#e3eefc;border-radius:14px 14px 4px 14px}
 .bubble.bot{background:#e0f4f4}
 .composer{display:flex;gap:8px;align-items:flex-end;margin-top:12px}
@@ -322,7 +323,7 @@ async function refreshClosed(){
   let rows;
   try{ rows = await (await fetch(`/api/closed?mode=${m}`)).json(); } catch { return; }
   if(seq !== closedSeq || m !== mode) return;  // a newer refresh or another mode owns the list
-  closed = Object.fromEntries(rows.map(c => [c.case_id, c]));
+  closed = Object.fromEntries(rows.map(c => [c.chat_no ? `${c.case_id}#${c.chat_no}` : c.case_id, c]));
   renderQueue();
 }
 $("#gear").onclick = e => { e.stopPropagation(); const s = $("#settings"); s.hidden = !s.hidden; $("#gear").setAttribute("aria-expanded", !s.hidden); };
@@ -399,11 +400,43 @@ function liveCard(c){
     ${status ? `<div class="outcome">${status}</div>` : ""}
   </div>`;
 }
+const stars = n => n ? `<span class="stars" title="Customer rating ${n} of 5">${"★".repeat(n)}${"☆".repeat(5 - n)}</span>` : "";
+const CHAT_BY = {copilot: "Answered by copilot", agent: "Handled by you"};
+function chatCard(c, k){
+  const last = [...k.transcript].reverse().find(m => m.role === "customer");
+  return `<div class="case ${c._key===current?"active":""}" data-id="${c._key}">
+    <div class="top"><span>${esc(c.customer_name)}</span><span class="tag live">💬 Chat ${k.chat_no}</span></div>
+    <div class="meta">${c.case_id} · ${k.transcript.length} messages · ended by ${k.ended_by === "customer" ? "the customer" : "you"}</div>
+    ${last ? `<div class="msg" ${isRtl(last.text)?'dir="rtl"':''}>${esc(last.text)}</div>` : ""}
+    <div class="outcome"><span class="hint">${CHAT_BY[k.by]} · ${fmtTime(k.at)}</span> ${k.rating ? stars(k.rating) : `<span class="hint">· no rating yet</span>`}</div>
+  </div>`;
+}
+// An ended live chat, read-only: the transcript as stored in the audit log (masked) and the customer's rating.
+async function openClosedChat(key){
+  const k = closed[key], c = cases.find(x => x.case_id === k.case_id), first = c.customer_name.split(" ")[0];
+  const d = await (await fetch(`/api/cases/${k.case_id}`)).json();
+  if(current !== key) return;
+  detail = {...d, case: {...d.case, live: false}};  // read-only record: the live-chat poll leaves this view alone
+  renderCustomer([]);
+  const fill = t => t.replaceAll("{{FIRST_NAME}}", first);
+  const who = m => m.role === "customer" ? first : m.role === "copilot" ? "Copilot · sent automatically" : "You";
+  $("#convo").innerHTML = `<div class="chathead"><span class="tag">💬 Chat ${k.chat_no} · ended</span><b>${esc(c.customer_name)}</b>
+      <span class="hint">as stored in the audit log (masked)</span></div>
+    <div class="chatlog">${k.transcript.map((m, i) => {
+      const me = m.role !== "customer", prev = k.transcript[i - 1];
+      const head = !prev || who(prev) !== who(m) ? `<div class="who ${me ? "me" : ""}">${esc(who(m))}</div>` : "";
+      return head + `<div class="bubble ${me ? "me" : ""} ${m.role === "copilot" ? "bot" : ""} ${isRtl(m.text) ? "rtl" : ""}">${esc(fill(m.text))}</div>`;
+    }).join("")}</div>`;
+  $("#draft").innerHTML = `<div class="row" style="margin-top:0"><span class="status ready">✓ ${CHAT_BY[k.by]}</span>
+      <span class="hint">Ended by ${k.ended_by === "customer" ? esc(first) : "you"} · ${fmtTime(k.at)}</span></div>
+    <div class="card"><h3>Customer rating</h3>${k.rating ? `<div style="font-size:22px">${stars(k.rating)}</div><span class="hint">${esc(first)} rated this chat ${k.rating} of 5.</span>`
+      : `<span class="hint">${esc(first)} hasn't rated this chat yet. The rating appears here when she does.</span>`}</div>`;
+}
 const fmtTime = ts => new Date(ts).toLocaleString(undefined, {month:"short", day:"numeric", hour:"2-digit", minute:"2-digit"});
 function renderQueue(){
   document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
   const openCases = openList();
-  const closedCases = Object.values(closed).map(x => cases.find(c => c.case_id === x.case_id)).filter(Boolean);
+  const closedCases = Object.entries(closed).map(([key, x]) => { const c = cases.find(c => c.case_id === x.case_id); return c && {...c, _key: key}; }).filter(Boolean);
   $("#n-open").textContent = openCases.length; $("#n-closed").textContent = closedCases.length;
   let list = tab === "open" ? openCases : closedCases, note = "";
   if(tab === "open" && mode === "auto"){
@@ -420,6 +453,7 @@ function renderQueue(){
   }
   const empty = tab === "open" ? (mode === "auto" ? "Nothing needs your approval." : "No open cases. Nice work.") : "No closed cases yet.";
   $("#queue").innerHTML = note + (list.length ? "" : `<div class="empty" style="margin-top:30px">${empty}</div>`) + list.map(c => {
+    if(c._key && closed[c._key].chat_no) return chatCard(c, closed[c._key]);
     if(c.live) return liveCard(c);
     const a = auto[c.case_id], k = closed[c.case_id];
     let line = "";
@@ -461,6 +495,7 @@ async function openCase(id){
   if(id !== current){ openedAt = Date.now(); sourcesOpened = 0; }
   current = id;
   document.querySelectorAll(".case").forEach(el => el.classList.toggle("active", el.dataset.id===id));
+  if(closed[id]?.chat_no) return openClosedChat(id);
   detail = await (await fetch(`/api/cases/${id}`)).json();
   const c = detail.case;
   if(c.live) return openLive(id);
@@ -790,11 +825,18 @@ async function refreshLive(force){
     : mode === "copilot" ? "Copilot: a fresh draft for each message; you edit and send."
     : takeover ? "You took over: the copilot drafts, you send." : "Auto-reply: the copilot answers by itself; high risk waits for you.";
   $("#chathead").innerHTML = `<span class="tag live">● Live chat</span><b>${esc(detail.customer.name)}</b><span class="hint">${modeLine}</span><span class="sp"></span>
-    ${mode === "auto" ? `<button id="takeover">${takeover ? "Hand back to copilot" : "Take over"}</button>` : ""}`;
+    ${mode === "auto" ? `<button id="takeover">${takeover ? "Hand back to copilot" : "Take over"}</button>` : ""}
+    ${chat.messages.length ? `<button id="end-chat" title="Moves this chat to Closed and asks the customer to rate it">End chat</button>` : ""}`;
+  $("#end-chat") && ($("#end-chat").onclick = async () => {
+    if(!confirm(`End this chat with ${first}? It moves to Closed, she is asked to rate it, and her next message starts a new chat.`)) return;
+    try{ await post(`/api/chats/${id}/end`); } catch(e){ toast(`Not ended: ${e.message}`); return; }
+    toast("Chat ended and moved to Closed.");
+    await refreshClosed(); refreshLive(true);
+  });
   $("#takeover") && ($("#takeover").onclick = async () => { await post(`/api/chats/${id}/takeover`, {on: !takeover}); refreshLive(true); });
   $("#composer-hint").textContent = mode === "auto" && !takeover ? "Sending a message yourself takes over from the copilot." : "";
-  if(chat.seq !== live.logSeq){
-    live.logSeq = chat.seq;
+  if(`${chat.no}:${chat.seq}` !== live.logSeq){
+    live.logSeq = `${chat.no}:${chat.seq}`;
     const log = $("#chatlog");
     log.innerHTML = chat.messages.map((m, i) => {
       const me = m.role !== "customer", prev = chat.messages[i - 1];
@@ -804,7 +846,7 @@ async function refreshLive(force){
     log.scrollTop = log.scrollHeight;
   }
   // the draft panel is re-drawn only when its state changes, so the agent's edits are never wiped by the poll
-  const key = [mode, takeover, dr ? `${dr.for}:${dr.pending}:${dr.sent}:${!!dr.error}` : "none", chat.messages.length > 0].join("|");
+  const key = [chat.no, mode, takeover, dr ? `${dr.for}:${dr.pending}:${dr.sent}:${!!dr.error}` : "none", chat.messages.length > 0].join("|");
   if(!force && key === live.key) return;
   live.key = key;
   const agentDriven = mode !== "auto" || takeover;
@@ -847,7 +889,8 @@ async function pollChats(){
     for(const s of rows){
       const old = live.summary[s.case_id];
       if(!old || old.seq !== s.seq || old.drafting !== s.drafting || old.takeover !== s.takeover) changed = true;
-      if(old && s.seq > old.seq && s.last?.role === "customer" && current !== s.case_id){
+      if(old && (old.chat_no !== s.chat_no || old.rate_for !== s.rate_for)) await refreshClosed();
+      if(old && (s.seq > old.seq || s.chat_no !== old.chat_no) && s.last?.role === "customer" && current !== s.case_id){
         const c = cases.find(x => x.case_id === s.case_id);
         toast(`New message from ${c ? c.customer_name.split(" ")[0] : s.case_id}`);
       }
